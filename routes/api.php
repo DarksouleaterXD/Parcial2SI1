@@ -14,6 +14,7 @@ use App\Http\Controllers\DocenteController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\BitacoraController;
 use App\Http\Controllers\GestionAcademicaController;
+use App\Http\Controllers\PeriodoController;
 
 /**
  * RUTAS PÚBLICAS (sin autenticación)
@@ -49,6 +50,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // CU4 - Gestionar Carreras
         Route::apiResource('carreras', CarreraController::class);
 
+        // CU6 - Gestionar Periodos Académicos
+        Route::apiResource('periodos', PeriodoController::class);
+        Route::patch('periodos/{periodo}/vigente', [PeriodoController::class, 'marcarVigente']);
+
         // CU5 - Gestionar Grupos
         Route::apiResource('grupos', GrupoController::class);
 
@@ -72,7 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /**
      * RUTAS COORDINADOR
-     * Puede: CU2 (Docentes), CU3 (Materias), CU4 (Aulas), CU5 (Grupos), CU7 (Horarios), CU14-15 (Asignación)
+     * Puede: CU2 (Docentes), CU3 (Materias), CU4 (Aulas), CU5 (Grupos), CU6 (Periodos-lectura), CU7 (Horarios), CU14-15 (Asignación)
      */
     Route::middleware('IsCoordinador')->group(function () {
         Route::apiResource('materias', MateriaController::class);
@@ -83,6 +88,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('aulas/{aula}/estado', [AulasController::class, 'updateEstado']);
         Route::apiResource('grupos', GrupoController::class);
         Route::apiResource('horarios', HorarioController::class);
+
+        // CU6 - Coordinador solo puede consultar periodos
+        Route::get('periodos', [PeriodoController::class, 'index']);
+        Route::get('periodos/{periodo}', [PeriodoController::class, 'show']);
     });
 
     /**

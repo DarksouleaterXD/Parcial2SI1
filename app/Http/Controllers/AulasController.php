@@ -312,19 +312,3 @@ class AulasController extends Controller
         }
     }
 }
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Aulas $aulas)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Aulas $aulas)
-    {
-        //
-    }
-}
