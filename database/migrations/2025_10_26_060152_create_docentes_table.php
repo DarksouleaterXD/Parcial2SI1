@@ -11,10 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('docentes', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
+        // Migración trasladada a 2025_10_26_060800_create_docentes_table.php
     }
 
     /**

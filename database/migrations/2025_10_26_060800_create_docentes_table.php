@@ -11,18 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('carreras', function (Blueprint $table) {
+        Schema::create('docentes', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo', 50)->unique();
-            $table->string('nombre', 255);
-            $table->text('descripcion')->nullable();
+            $table->foreignId('id_persona')->constrained('personas')->onDelete('cascade');
             $table->boolean('activo')->default(true);
             $table->timestamps();
-            $table->softDeletes();
-
-            // Índices
-            $table->index('codigo');
-            $table->index('activo');
         });
     }
 
@@ -31,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('carreras');
+        Schema::dropIfExists('docentes');
     }
 };

@@ -13,23 +13,23 @@ class Bitacora extends Model
     protected $table = 'bitacoras';
 
     protected $fillable = [
-        'id_persona',
-        'fecha_hora',
-        'modulo',
-        'accion',
+        'id_usuario',
+        'tabla',
+        'operacion',
+        'id_registro',
         'descripcion',
-        'ip_origen',
     ];
 
     protected $casts = [
-        'fecha_hora' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
-     * Relación con Persona
+     * Relación con Usuario
      */
-    public function persona(): BelongsTo
+    public function usuario(): BelongsTo
     {
-        return $this->belongsTo(Persona::class, 'id_persona', 'id');
+        return $this->belongsTo(User::class, 'id_usuario', 'id');
     }
 }

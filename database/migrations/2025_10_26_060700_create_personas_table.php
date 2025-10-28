@@ -12,12 +12,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('id_usuario')->nullable()->constrained('usuarios')->onDelete('set null');
             $table->string('nombre');
-            $table->string('apellido');
+            $table->string('apellido')->nullable();
             $table->string('correo')->unique();
             $table->string('ci')->unique();
             $table->integer('failed_login_attempts')->default(0);
             $table->timestamp('lock_until')->nullable();
-            $table->string('username')->unique();
+            $table->string('username')->nullable()->unique();
             $table->timestamps();
         });
     }

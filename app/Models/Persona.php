@@ -12,6 +12,9 @@ class Persona extends Model
     use HasFactory;
 
     protected $table = 'personas';
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     protected $fillable = [
         'id_usuario',

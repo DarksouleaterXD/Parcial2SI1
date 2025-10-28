@@ -13,7 +13,19 @@ return new class extends Migration
     {
         Schema::create('aulas', function (Blueprint $table) {
             $table->id();
+            $table->string('codigo', 20)->unique();
+            $table->string('nombre', 255);
+            $table->enum('tipo', ['teorica', 'practica', 'laboratorio', 'mixta'])->default('teorica');
+            $table->integer('capacidad');
+            $table->string('ubicacion', 255)->nullable();
+            $table->integer('piso')->nullable();
+            $table->boolean('activo')->default(true);
             $table->timestamps();
+            $table->softDeletes();
+
+            // Índices
+            $table->index('codigo');
+            $table->index('activo');
         });
     }
 

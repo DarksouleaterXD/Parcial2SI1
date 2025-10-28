@@ -4,43 +4,52 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Materia extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    protected $table = 'materias';
-
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'codigo',
         'nombre',
-        'creditos',
+        'carrera_id',
+        'horas_semana',
+        'activo',
     ];
 
     /**
-     * Relación con Carreras (muchos a muchos)
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
      */
-    public function carreras(): BelongsToMany
+    protected $casts = [
+        'activo' => 'boolean',
+        'horas_semana' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
+    ];
+
+    /**
+     * Get the carrera that owns the materia.
+     */
+    public function carrera()
     {
-        return $this->belongsToMany(
-            Carrera::class,
-            'materia_carrera',
-            'id_materia',
-            'id_carrera'
-        )->withPivot('plan', 'semestre', 'tipo', 'carga_teo', 'carga_pra');
+        return $this->belongsTo(Carrera::class);
     }
 
     /**
-     * Relación con Grupos
+     * Get all the bitacora entries for this materia.
      */
-    public function grupos(): BelongsToMany
+    public function bitacora()
     {
-        return $this->belongsToMany(
-            Grupo::class,
-            'grupo_materia',
-            'id_materia',
-            'id_grupo'
-        );
+        return $this->hasMany(Bitacora::class, 'id_registro')
+            ->where('tabla', 'materias');
     }
 }
