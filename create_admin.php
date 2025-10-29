@@ -25,7 +25,7 @@ try {
     $admin = User::create([
         'nombre' => 'Admin',
         'email' => 'admin@gestion.com',
-        'password' => Hash::make('Admin123456'),
+        'password' => Hash::make('admin12345'),
         'rol' => 'admin',
         'activo' => true,
         'id_persona' => $persona->id,
@@ -34,7 +34,7 @@ try {
     echo "✅ Superadmin creado exitosamente\n";
     echo "════════════════════════════════════════\n";
     echo "Email: " . $admin->email . "\n";
-    echo "Password: Admin123456\n";
+    echo "Password: admin12345\n";
     echo "Rol: " . $admin->rol . "\n";
     echo "ID: " . $admin->id . "\n";
     echo "════════════════════════════════════════\n";
