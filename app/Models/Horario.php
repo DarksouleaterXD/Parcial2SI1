@@ -20,6 +20,8 @@ class Horario extends Model
         'id_aula',
         'id_docente',
         'id_bloque',
+        'hora_inicio',
+        'hora_fin',
         'dia_semana',
         'activo',
         'descripcion',
@@ -27,6 +29,8 @@ class Horario extends Model
 
     protected $casts = [
         'activo' => 'boolean',
+        'hora_inicio' => 'datetime:H:i',
+        'hora_fin' => 'datetime:H:i',
     ];
 
     /**

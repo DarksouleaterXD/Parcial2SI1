@@ -83,7 +83,8 @@ class HorarioController extends Controller
                 'id_grupo' => 'required|exists:grupos,id',
                 'id_aula' => 'required|exists:aulas,id',
                 'id_docente' => 'required|exists:docentes,id',
-                'id_bloque' => 'required|exists:bloques_horarios,id',
+                'hora_inicio' => 'required|date_format:H:i',
+                'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
                 'dia_semana' => 'required|string|in:lunes,martes,miércoles,jueves,viernes',
                 'activo' => 'boolean',
                 'descripcion' => 'string|nullable|max:500',
@@ -97,39 +98,12 @@ class HorarioController extends Controller
                 ], 422);
             }
 
-            // Verificar que no haya conflictos de horarios
-            $conflicto = Horario::where('id_aula', $request->id_aula)
-                ->where('dia_semana', $request->dia_semana)
-                ->where('id_bloque', $request->id_bloque)
-                ->where('activo', true)
-                ->exists();
-
-            if ($conflicto) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El aula ya tiene un horario asignado en ese bloque y día',
-                ], 400);
-            }
-
-            // Verificar que el docente no tenga conflicto
-            $conflictoDocente = Horario::where('id_docente', $request->id_docente)
-                ->where('dia_semana', $request->dia_semana)
-                ->where('id_bloque', $request->id_bloque)
-                ->where('activo', true)
-                ->exists();
-
-            if ($conflictoDocente) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El docente ya tiene un horario asignado en ese bloque y día',
-                ], 400);
-            }
-
             $horario = Horario::create([
                 'id_grupo' => $request->id_grupo,
                 'id_aula' => $request->id_aula,
                 'id_docente' => $request->id_docente,
-                'id_bloque' => $request->id_bloque,
+                'hora_inicio' => $request->hora_inicio,
+                'hora_fin' => $request->hora_fin,
                 'dia_semana' => $request->dia_semana,
                 'activo' => $request->input('activo', true),
                 'descripcion' => $request->descripcion,
@@ -186,7 +160,8 @@ class HorarioController extends Controller
                 'id_grupo' => 'exists:grupos,id',
                 'id_aula' => 'exists:aulas,id',
                 'id_docente' => 'exists:docentes,id',
-                'id_bloque' => 'exists:bloques_horarios,id',
+                'hora_inicio' => 'date_format:H:i',
+                'hora_fin' => 'date_format:H:i|after:hora_inicio',
                 'dia_semana' => 'string|in:lunes,martes,miércoles,jueves,viernes',
                 'activo' => 'boolean',
                 'descripcion' => 'string|nullable|max:500',
@@ -200,52 +175,12 @@ class HorarioController extends Controller
                 ], 422);
             }
 
-            // Verificar conflictos si se cambian valores críticos
-            if ($request->has('id_aula') || $request->has('dia_semana') || $request->has('id_bloque')) {
-                $idAula = $request->id_aula ?? $horario->id_aula;
-                $diaSemana = $request->dia_semana ?? $horario->dia_semana;
-                $idBloque = $request->id_bloque ?? $horario->id_bloque;
-
-                $conflicto = Horario::where('id_aula', $idAula)
-                    ->where('dia_semana', $diaSemana)
-                    ->where('id_bloque', $idBloque)
-                    ->where('id', '!=', $horario->id)
-                    ->where('activo', true)
-                    ->exists();
-
-                if ($conflicto) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'El aula ya tiene un horario asignado en ese bloque y día',
-                    ], 400);
-                }
-            }
-
-            if ($request->has('id_docente') || $request->has('dia_semana') || $request->has('id_bloque')) {
-                $idDocente = $request->id_docente ?? $horario->id_docente;
-                $diaSemana = $request->dia_semana ?? $horario->dia_semana;
-                $idBloque = $request->id_bloque ?? $horario->id_bloque;
-
-                $conflictoDocente = Horario::where('id_docente', $idDocente)
-                    ->where('dia_semana', $diaSemana)
-                    ->where('id_bloque', $idBloque)
-                    ->where('id', '!=', $horario->id)
-                    ->where('activo', true)
-                    ->exists();
-
-                if ($conflictoDocente) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'El docente ya tiene un horario asignado en ese bloque y día',
-                    ], 400);
-                }
-            }
-
             $horario->update($request->only([
                 'id_grupo',
                 'id_aula',
                 'id_docente',
-                'id_bloque',
+                'hora_inicio',
+                'hora_fin',
                 'dia_semana',
                 'activo',
                 'descripcion',

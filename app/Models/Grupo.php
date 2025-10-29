@@ -26,6 +26,7 @@ class Grupo extends Model
         'paralelo',
         'turno',
         'capacidad',
+        'codigo',
     ];
 
     /**

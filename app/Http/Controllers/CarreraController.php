@@ -30,7 +30,7 @@ class CarreraController extends Controller
             if ($search) {
                 $query->where('nombre', 'ilike', "%{$search}%")
                     ->orWhere('codigo', 'ilike', "%{$search}%")
-                    ->orWhere('sigla', 'ilike', "%{$search}%");
+                    ->orWhere('plan', 'ilike', "%{$search}%");
             }
 
             $carreras = $query->orderBy('nombre')
@@ -67,7 +67,8 @@ class CarreraController extends Controller
             $validated = $request->validate([
                 'nombre' => 'required|string|max:255|unique:carreras',
                 'codigo' => 'required|string|max:50|unique:carreras',
-                'sigla' => 'required|string|max:10|unique:carreras'
+                'plan' => 'required|string|max:255',
+                'version' => 'required|string|max:50'
             ]);
 
             $carrera = Carrera::create($validated);
@@ -141,7 +142,8 @@ class CarreraController extends Controller
             $validated = $request->validate([
                 'nombre' => "sometimes|string|max:255|unique:carreras,nombre,{$id}",
                 'codigo' => "sometimes|string|max:50|unique:carreras,codigo,{$id}",
-                'sigla' => "sometimes|string|max:10|unique:carreras,sigla,{$id}"
+                'plan' => 'sometimes|string|max:255',
+                'version' => 'sometimes|string|max:50'
             ]);
 
             $carrera->update($validated);

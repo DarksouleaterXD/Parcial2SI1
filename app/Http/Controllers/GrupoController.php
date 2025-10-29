@@ -85,6 +85,7 @@ class GrupoController extends Controller
                 'paralelo' => ['required', 'string', 'max:1', 'regex:/^[A-Z]$/'],
                 'turno' => ['required', 'in:mañana,tarde,noche'],
                 'capacidad' => ['required', 'integer', 'min:1', 'max:500'],
+                'codigo' => ['nullable', 'string', 'max:10', 'unique:grupos,codigo'],
             ]);
 
             // Validar combinación única: materia + periodo + paralelo
@@ -170,6 +171,7 @@ class GrupoController extends Controller
                 'paralelo' => ['sometimes', 'string', 'max:1', 'regex:/^[A-Z]$/'],
                 'turno' => ['sometimes', 'in:mañana,tarde,noche'],
                 'capacidad' => ['sometimes', 'integer', 'min:1', 'max:500'],
+                'codigo' => ['sometimes', 'string', 'max:10', 'unique:grupos,codigo,' . $grupo->id],
             ]);
 
             // Si se cambió materia, periodo o paralelo, validar unicidad

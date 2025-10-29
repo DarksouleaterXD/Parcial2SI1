@@ -22,6 +22,7 @@ class Persona extends Model
         'apellido',
         'correo',
         'ci',
+        'telefono',
         'failed_login_attempts',
         'lock_until',
         'username',

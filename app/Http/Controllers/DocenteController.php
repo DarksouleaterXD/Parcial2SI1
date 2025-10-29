@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Docente;
 use App\Models\Persona;
+use App\Models\User;
 use App\Models\Bitacora;
 use App\Helpers\IpHelper;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash;
 
 class DocenteController extends Controller
 {
@@ -39,7 +41,7 @@ class DocenteController extends Controller
                 'ci' => $docente->persona->ci,
                 'nombre' => $docente->persona->nombre,
                 'correo' => $docente->persona->correo,
-                'telefono' => '', // Agregar si existe campo
+                'telefono' => $docente->persona->telefono ?? '',
                 'estado' => $docente->activo ? 'activo' : 'inactivo',
                 'created_at' => $docente->created_at,
                 'updated_at' => $docente->updated_at,
@@ -64,8 +66,9 @@ class DocenteController extends Controller
         $validated = $request->validate([
             'ci' => ['required', 'string', 'unique:personas,ci'],
             'nombre' => 'required|string|max:255',
-            'correo' => ['required', 'email', 'unique:personas,correo'],
-            'telefono' => 'nullable|string|max:20',
+            'correo' => ['required', 'email', 'unique:personas,correo', 'unique:usuarios,email'],
+            'telefono' => 'nullable|digits_between:7,15',
+            'contrasena' => 'required|string|min:8',
             'estado' => 'required|in:activo,inactivo',
         ], [
             'ci.unique' => 'El CI ya está registrado en el sistema',
@@ -74,15 +77,29 @@ class DocenteController extends Controller
             'ci.required' => 'El CI es obligatorio',
             'nombre.required' => 'El nombre es obligatorio',
             'correo.required' => 'El correo es obligatorio',
+            'contrasena.required' => 'La contraseña es obligatoria',
+            'contrasena.min' => 'La contraseña debe tener al menos 8 caracteres',
             'estado.required' => 'El estado es obligatorio',
+            'telefono.digits_between' => 'El teléfono debe tener entre 7 y 15 dígitos',
         ]);
 
         try {
+            // Crear Usuario
+            $usuario = User::create([
+                'nombre' => $validated['nombre'],
+                'email' => $validated['correo'],
+                'password' => Hash::make($validated['contrasena']),
+                'rol' => 'docente',
+                'activo' => $validated['estado'] === 'activo',
+            ]);
+
             // Crear Persona
             $persona = Persona::create([
                 'ci' => $validated['ci'],
                 'nombre' => $validated['nombre'],
                 'correo' => $validated['correo'],
+                'telefono' => $validated['telefono'] ?? null,
+                'id_usuario' => $usuario->id,
             ]);
 
             // Crear Docente
@@ -95,10 +112,11 @@ class DocenteController extends Controller
             if (auth()->check()) {
                 Bitacora::create([
                     'id_usuario' => auth()->id(),
+                    'ip_address' => IpHelper::getClientIp(),
                     'tabla' => 'docentes',
                     'operacion' => 'crear',
                     'id_registro' => $docente->id,
-                    'descripcion' => "Se creó docente: {$persona->nombre} (CI: {$persona->ci})",
+                    'descripcion' => "Se creó docente: {$persona->nombre} (CI: {$persona->ci}) con cuenta de usuario {$usuario->email}",
                 ]);
             }
 
@@ -109,10 +127,10 @@ class DocenteController extends Controller
                     'ci' => $persona->ci,
                     'nombre' => $persona->nombre,
                     'correo' => $persona->correo,
-                    'telefono' => $validated['telefono'] ?? '',
+                    'telefono' => $persona->telefono ?? '',
                     'estado' => $validated['estado'],
                 ],
-                'message' => 'Docente creado correctamente',
+                'message' => 'Docente creado correctamente. Puede usar su correo y contraseña para entrar al sistema.',
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -135,7 +153,7 @@ class DocenteController extends Controller
             'ci' => $docente->persona->ci,
             'nombre' => $docente->persona->nombre,
             'correo' => $docente->persona->correo,
-            'telefono' => '',
+            'telefono' => $docente->persona->telefono ?? '',
             'estado' => $docente->activo ? 'activo' : 'inactivo',
             'created_at' => $docente->created_at,
             'updated_at' => $docente->updated_at,
@@ -148,22 +166,47 @@ class DocenteController extends Controller
      */
     public function update(Request $request, Docente $docente)
     {
-        $docente->load('persona');
+        $docente->load('persona', 'usuario');
 
         $validated = $request->validate([
             'ci' => ['sometimes', 'required', 'string', Rule::unique('personas', 'ci')->ignore($docente->persona->id)],
             'nombre' => 'sometimes|required|string|max:255',
-            'correo' => ['sometimes', 'required', 'email', Rule::unique('personas', 'correo')->ignore($docente->persona->id)],
-            'telefono' => 'nullable|string|max:20',
+            'correo' => ['sometimes', 'required', 'email', Rule::unique('personas', 'correo')->ignore($docente->persona->id), Rule::unique('usuarios', 'email')->ignore($docente->usuario->id ?? null)],
+            'telefono' => 'nullable|digits_between:7,15',
+            'contrasena' => 'nullable|string|min:8',
             'estado' => 'sometimes|required|in:activo,inactivo',
         ], [
             'ci.unique' => 'El CI ya está registrado en el sistema',
             'correo.unique' => 'El correo ya está registrado en el sistema',
             'correo.email' => 'El correo debe ser válido',
+            'contrasena.min' => 'La contraseña debe tener al menos 8 caracteres',
+            'telefono.digits_between' => 'El teléfono debe tener entre 7 y 15 dígitos',
         ]);
 
         try {
             $cambios = [];
+
+            // Actualizar Usuario si existe y hay cambios en correo o contraseña
+            if ($docente->usuario) {
+                if (isset($validated['nombre']) && $validated['nombre'] !== $docente->usuario->nombre) {
+                    $cambios[] = "Nombre usuario: {$docente->usuario->nombre} → {$validated['nombre']}";
+                    $docente->usuario->nombre = $validated['nombre'];
+                }
+
+                if (isset($validated['correo']) && $validated['correo'] !== $docente->usuario->email) {
+                    $cambios[] = "Email usuario: {$docente->usuario->email} → {$validated['correo']}";
+                    $docente->usuario->email = $validated['correo'];
+                }
+
+                if (isset($validated['contrasena']) && !empty($validated['contrasena'])) {
+                    $cambios[] = "Contraseña del usuario actualizada";
+                    $docente->usuario->password = Hash::make($validated['contrasena']);
+                }
+
+                if ($cambios) {
+                    $docente->usuario->save();
+                }
+            }
 
             // Actualizar Persona si es necesario
             if (isset($validated['ci']) && $validated['ci'] !== $docente->persona->ci) {
@@ -177,8 +220,13 @@ class DocenteController extends Controller
             }
 
             if (isset($validated['correo']) && $validated['correo'] !== $docente->persona->correo) {
-                $cambios[] = "Correo: {$docente->persona->correo} → {$validated['correo']}";
+                $cambios[] = "Correo persona: {$docente->persona->correo} → {$validated['correo']}";
                 $docente->persona->correo = $validated['correo'];
+            }
+
+            if (isset($validated['telefono']) && $validated['telefono'] !== $docente->persona->telefono) {
+                $cambios[] = "Teléfono: {$docente->persona->telefono} → {$validated['telefono']}";
+                $docente->persona->telefono = $validated['telefono'];
             }
 
             if ($cambios) {
@@ -193,6 +241,11 @@ class DocenteController extends Controller
                 if ($estado_anterior !== $estado_nuevo) {
                     $cambios[] = "Estado: {$estado_anterior} → {$estado_nuevo}";
                     $docente->update(['activo' => $estado_nuevo === 'activo']);
+
+                    // Actualizar también el usuario si existe
+                    if ($docente->usuario) {
+                        $docente->usuario->update(['activo' => $estado_nuevo === 'activo']);
+                    }
                 }
             }
 
@@ -200,6 +253,7 @@ class DocenteController extends Controller
             if (auth()->check() && $cambios) {
                 Bitacora::create([
                     'id_usuario' => auth()->id(),
+                    'ip_address' => IpHelper::getClientIp(),
                     'tabla' => 'docentes',
                     'operacion' => 'editar',
                     'id_registro' => $docente->id,
@@ -214,7 +268,7 @@ class DocenteController extends Controller
                     'ci' => $docente->persona->ci,
                     'nombre' => $docente->persona->nombre,
                     'correo' => $docente->persona->correo,
-                    'telefono' => $validated['telefono'] ?? '',
+                    'telefono' => $docente->persona->telefono ?? '',
                     'estado' => $docente->activo ? 'activo' : 'inactivo',
                 ],
                 'message' => 'Docente actualizado correctamente',
@@ -297,6 +351,7 @@ class DocenteController extends Controller
             if (auth()->check()) {
                 Bitacora::create([
                     'id_usuario' => auth()->id(),
+                    'ip_address' => IpHelper::getClientIp(),
                     'tabla' => 'docentes',
                     'operacion' => 'eliminar',
                     'id_registro' => $docente->id,

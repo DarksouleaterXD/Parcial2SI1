@@ -16,7 +16,6 @@ class Docente extends Model
     protected $table = 'docentes';
 
     protected $fillable = [
-        'id_usuario',
         'id_persona',
         'activo',
     ];
