@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use App\Traits\TracksChanges;
 
 class Docente extends Model
@@ -25,11 +26,18 @@ class Docente extends Model
     ];
 
     /**
-     * Relación con Usuario
+     * Relación con Usuario (a través de Persona)
      */
-    public function usuario(): BelongsTo
+    public function usuario()
     {
-        return $this->belongsTo(User::class, 'id_usuario', 'id');
+        return $this->hasOneThrough(
+            User::class,      // Modelo final
+            Persona::class,   // Modelo intermedio
+            'id',             // Foreign key en Persona que relaciona con Docente
+            'id',             // Foreign key en User que relaciona con Persona
+            'id_persona',     // Local key en Docente
+            'id_usuario'      // Local key en Persona
+        );
     }
 
     /**
