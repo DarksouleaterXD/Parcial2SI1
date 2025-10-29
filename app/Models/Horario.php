@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Horario extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'horarios';
 
@@ -17,14 +18,14 @@ class Horario extends Model
         'id_grupo',
         'id_aula',
         'id_docente',
+        'id_bloque',
         'dia_semana',
-        'hora_inicio',
-        'hora_fin',
+        'activo',
+        'descripcion',
     ];
 
     protected $casts = [
-        'hora_inicio' => 'datetime:H:i',
-        'hora_fin' => 'datetime:H:i',
+        'activo' => 'boolean',
     ];
 
     /**
@@ -49,6 +50,14 @@ class Horario extends Model
     public function docente(): BelongsTo
     {
         return $this->belongsTo(Docente::class, 'id_docente', 'id');
+    }
+
+    /**
+     * Relación con BloqueHorario
+     */
+    public function bloque(): BelongsTo
+    {
+        return $this->belongsTo(BloqueHorario::class, 'id_bloque', 'id');
     }
 
     /**

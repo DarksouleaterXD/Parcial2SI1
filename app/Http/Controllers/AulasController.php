@@ -311,4 +311,94 @@ class AulasController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Consultar disponibilidad de aulas según criterios
+     * GET /api/aulas/disponibilidad
+     */
+    public function disponibilidad(Request $request)
+    {
+        try {
+            $dia_semana = $request->query('dia_semana'); // 1-5 (Lunes-Viernes)
+            $id_bloque = $request->query('id_bloque'); // ID del bloque horario
+            $aforo_minimo = $request->query('aforo_minimo', 0);
+            $tipo = $request->query('tipo'); // teorica, practica, laboratorio, mixta
+            $periodo_id = $request->query('id_periodo'); // ID del periodo
+
+            // Validar parámetros
+            if (!$dia_semana || !$id_bloque) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parámetros requeridos: dia_semana, id_bloque'
+                ], 400);
+            }
+
+            // Obtener todas las aulas activas
+            $aulasQuery = Aulas::where('activo', true);
+
+            // Filtrar por tipo si se especifica
+            if ($tipo) {
+                $aulasQuery->where('tipo', $tipo);
+            }
+
+            // Filtrar por aforo mínimo
+            if ($aforo_minimo > 0) {
+                $aulasQuery->where('capacidad', '>=', $aforo_minimo);
+            }
+
+            $aulas = $aulasQuery->get();
+
+            // Obtener horarios ocupados para ese día y bloque
+            $ocupadas = \DB::table('horarios')
+                ->where('dia_semana', $dia_semana)
+                ->where('id_bloque', $id_bloque);
+
+            // Filtrar por período si se especifica
+            if ($periodo_id) {
+                $ocupadas->where('id_periodo', $periodo_id);
+            }
+
+            $ocupadas = $ocupadas->pluck('id_aula')->toArray();
+
+            // Filtrar aulas disponibles (no ocupadas)
+            $disponibles = $aulas->filter(function ($aula) use ($ocupadas) {
+                return !in_array($aula->id, $ocupadas);
+            })->values();
+
+            // Transformar respuesta
+            $resultado = $disponibles->map(function ($aula) {
+                return [
+                    'id' => $aula->id,
+                    'codigo' => $aula->codigo,
+                    'nombre' => $aula->nombre,
+                    'tipo' => $aula->tipo,
+                    'capacidad' => $aula->capacidad,
+                    'ubicacion' => $aula->ubicacion,
+                    'piso' => $aula->piso,
+                    'disponible' => true
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Se encontraron " . count($resultado) . " aulas disponibles",
+                'data' => $resultado,
+                'total' => count($resultado),
+                'filtros' => [
+                    'dia_semana' => $dia_semana,
+                    'id_bloque' => $id_bloque,
+                    'aforo_minimo' => $aforo_minimo,
+                    'tipo' => $tipo,
+                    'periodo_id' => $periodo_id
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al consultar disponibilidad',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
