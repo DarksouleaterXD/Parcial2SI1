@@ -148,6 +148,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // CU6 - Coordinador solo puede consultar periodos
         Route::get('periodos', [PeriodoController::class, 'index']);
         Route::get('periodos/{periodo}', [PeriodoController::class, 'show']);
+
+        // CU3 - Coordinador puede consultar materias (necesario para crear grupos)
+        Route::get('materias', [MateriaController::class, 'index']);
+        Route::get('materias/{materia}', [MateriaController::class, 'show']);
     });
 
     /**

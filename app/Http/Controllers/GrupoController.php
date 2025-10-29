@@ -82,7 +82,7 @@ class GrupoController extends Controller
             $validated = $request->validate([
                 'id_materia' => ['required', 'integer', 'exists:materias,id'],
                 'id_periodo' => ['required', 'integer', 'exists:periodos,id'],
-                'paralelo' => ['required', 'string', 'max:1', 'regex:/^[A-Z]$/'],
+                'paralelo' => ['required', 'string', 'max:2', 'regex:/^[A-Z]{1,2}$/'],
                 'turno' => ['required', 'in:mañana,tarde,noche'],
                 'capacidad' => ['required', 'integer', 'min:1', 'max:500'],
                 'codigo' => ['nullable', 'string', 'max:10', 'unique:grupos,codigo'],
@@ -168,7 +168,7 @@ class GrupoController extends Controller
             $validated = $request->validate([
                 'id_materia' => ['sometimes', 'integer', 'exists:materias,id'],
                 'id_periodo' => ['sometimes', 'integer', 'exists:periodos,id'],
-                'paralelo' => ['sometimes', 'string', 'max:1', 'regex:/^[A-Z]$/'],
+                'paralelo' => ['sometimes', 'string', 'max:2', 'regex:/^[A-Z]{1,2}$/'],
                 'turno' => ['sometimes', 'in:mañana,tarde,noche'],
                 'capacidad' => ['sometimes', 'integer', 'min:1', 'max:500'],
                 'codigo' => ['sometimes', 'string', 'max:10', 'unique:grupos,codigo,' . $grupo->id],
