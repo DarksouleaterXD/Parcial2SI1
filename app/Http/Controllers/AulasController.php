@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Aulas;
 use App\Models\Bitacora;
+use App\Helpers\IpHelper;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -274,6 +275,7 @@ class AulasController extends Controller
             if (auth()->check()) {
                 Bitacora::create([
                     'id_usuario' => auth()->user()->id,
+                    'ip_address' => IpHelper::getClientIp(),
                     'tabla' => 'aulas',
                     'operacion' => 'cambiar_estado',
                     'id_registro' => $aula->id,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Horario;
 use App\Models\Bitacora;
+use App\Helpers\IpHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
@@ -136,11 +137,12 @@ class HorarioController extends Controller
 
             // Registrar en bitácora
             Bitacora::create([
-                'id_user' => Auth::id(),
-                'descripcion' => "Horario creado: Grupo {$request->id_grupo}, Aula {$request->id_aula}, {$request->dia_semana}",
+                'id_usuario' => Auth::id(),
+                'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'horarios',
+                'operacion' => 'crear',
                 'id_registro' => $horario->id,
-                'operacion' => 'CREATE',
+                'descripcion' => "Horario creado: Grupo {$request->id_grupo}, Aula {$request->id_aula}, {$request->dia_semana}",
             ]);
 
             return response()->json([
@@ -251,11 +253,12 @@ class HorarioController extends Controller
 
             // Registrar en bitácora
             Bitacora::create([
-                'id_user' => Auth::id(),
-                'descripcion' => "Horario actualizado: Grupo {$horario->id_grupo}, Aula {$horario->id_aula}, {$horario->dia_semana}",
+                'id_usuario' => Auth::id(),
+                'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'horarios',
+                'operacion' => 'editar',
                 'id_registro' => $horario->id,
-                'operacion' => 'UPDATE',
+                'descripcion' => "Horario actualizado: Grupo {$horario->id_grupo}, Aula {$horario->id_aula}, {$horario->dia_semana}",
             ]);
 
             return response()->json([
@@ -282,11 +285,12 @@ class HorarioController extends Controller
 
             // Registrar en bitácora
             Bitacora::create([
-                'id_user' => Auth::id(),
-                'descripcion' => "Horario eliminado: ID {$horarioId}",
+                'id_usuario' => Auth::id(),
+                'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'horarios',
+                'operacion' => 'eliminar',
                 'id_registro' => $horarioId,
-                'operacion' => 'DELETE',
+                'descripcion' => "Horario eliminado: ID {$horarioId}",
             ]);
 
             return response()->json([

@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Models\Bitacora;
+use App\Helpers\IpHelper;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -22,8 +23,9 @@ class BitacoraListener
 
         Bitacora::create([
             'id_usuario' => Auth::id(),
+            'ip_address' => IpHelper::getClientIp(),
             'tabla' => $nombreTabla,
-            'operacion' => 'CREATE',
+            'operacion' => 'crear',
             'id_registro' => $id,
             'descripcion' => $descripcion,
         ]);
@@ -42,8 +44,9 @@ class BitacoraListener
 
         Bitacora::create([
             'id_usuario' => Auth::id(),
+            'ip_address' => IpHelper::getClientIp(),
             'tabla' => $nombreTabla,
-            'operacion' => 'UPDATE',
+            'operacion' => 'editar',
             'id_registro' => $id,
             'descripcion' => $descripcion,
         ]);
@@ -62,8 +65,9 @@ class BitacoraListener
 
         Bitacora::create([
             'id_usuario' => Auth::id(),
+            'ip_address' => IpHelper::getClientIp(),
             'tabla' => $nombreTabla,
-            'operacion' => 'DELETE',
+            'operacion' => 'eliminar',
             'id_registro' => $id,
             'descripcion' => $descripcion,
         ]);

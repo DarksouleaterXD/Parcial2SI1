@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CargaHoraria;
 use App\Models\Bitacora;
+use App\Helpers\IpHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
@@ -117,11 +118,12 @@ class CargaHorariaController extends Controller
 
             // Registrar en bitácora
             Bitacora::create([
-                'id_user' => Auth::id(),
-                'descripcion' => "Carga horaria asignada: Docente {$request->id_docente}, Grupo {$request->id_grupo}, {$request->horas_semana} horas/semana",
+                'id_usuario' => Auth::id(),
+                'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'carga_horarias',
+                'operacion' => 'crear',
                 'id_registro' => $carga->id,
-                'operacion' => 'CREATE',
+                'descripcion' => "Carga horaria asignada: Docente {$request->id_docente}, Grupo {$request->id_grupo}, {$request->horas_semana} horas/semana",
             ]);
 
             return response()->json([
@@ -183,11 +185,12 @@ class CargaHorariaController extends Controller
 
             // Registrar en bitácora
             Bitacora::create([
-                'id_user' => Auth::id(),
-                'descripcion' => "Carga horaria actualizada: Docente {$cargaHoraria->id_docente}, Grupo {$cargaHoraria->id_grupo}, {$cargaHoraria->horas_semana} horas/semana",
+                'id_usuario' => Auth::id(),
+                'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'carga_horarias',
+                'operacion' => 'editar',
                 'id_registro' => $cargaHoraria->id,
-                'operacion' => 'UPDATE',
+                'descripcion' => "Carga horaria actualizada: Docente {$cargaHoraria->id_docente}, Grupo {$cargaHoraria->id_grupo}, {$cargaHoraria->horas_semana} horas/semana",
             ]);
 
             return response()->json([
@@ -214,11 +217,12 @@ class CargaHorariaController extends Controller
 
             // Registrar en bitácora
             Bitacora::create([
-                'id_user' => Auth::id(),
-                'descripcion' => "Carga horaria eliminada: ID {$cargaId}",
+                'id_usuario' => Auth::id(),
+                'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'carga_horarias',
+                'operacion' => 'eliminar',
                 'id_registro' => $cargaId,
-                'operacion' => 'DELETE',
+                'descripcion' => "Carga horaria eliminada: ID {$cargaId}",
             ]);
 
             return response()->json([

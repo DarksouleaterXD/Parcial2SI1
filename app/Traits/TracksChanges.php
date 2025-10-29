@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Models\Bitacora;
+use App\Helpers\IpHelper;
 use Illuminate\Support\Facades\Auth;
 
 trait TracksChanges
@@ -39,8 +40,9 @@ trait TracksChanges
 
         Bitacora::create([
             'id_usuario' => Auth::id(),
+            'ip_address' => IpHelper::getClientIp(),
             'tabla' => $tabla,
-            'operacion' => 'CREATE',
+            'operacion' => 'crear',
             'id_registro' => $id,
             'descripcion' => "Nuevo registro creado en tabla: $tabla (ID: $id)",
         ]);
@@ -64,8 +66,9 @@ trait TracksChanges
 
         Bitacora::create([
             'id_usuario' => Auth::id(),
+            'ip_address' => IpHelper::getClientIp(),
             'tabla' => $tabla,
-            'operacion' => 'UPDATE',
+            'operacion' => 'editar',
             'id_registro' => $id,
             'descripcion' => $descripcion,
         ]);
@@ -85,8 +88,9 @@ trait TracksChanges
 
         Bitacora::create([
             'id_usuario' => Auth::id(),
+            'ip_address' => IpHelper::getClientIp(),
             'tabla' => $tabla,
-            'operacion' => 'DELETE',
+            'operacion' => 'eliminar',
             'id_registro' => $id,
             'descripcion' => "Registro eliminado de tabla: $tabla (ID: $id)",
         ]);

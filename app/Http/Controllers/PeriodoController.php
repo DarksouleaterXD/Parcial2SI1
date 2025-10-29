@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Periodo;
 use App\Models\Bitacora;
+use App\Helpers\IpHelper;
 use Illuminate\Http\Request;
 
 class PeriodoController extends Controller
@@ -103,12 +104,11 @@ class PeriodoController extends Controller
             $user = auth()->user();
             Bitacora::create([
                 'id_usuario' => $user->id,
-                'tipo_recurso' => 'periodo',
-                'id_recurso' => $periodo->id,
+                'ip_address' => IpHelper::getClientIp(),
+                'tabla' => 'periodos',
                 'operacion' => 'crear',
+                'id_registro' => $periodo->id,
                 'descripcion' => "Se creó el período {$periodo->nombre} ({$periodo->fecha_inicio->format('d/m/Y')} - {$periodo->fecha_fin->format('d/m/Y')})",
-                'cambios_previos' => null,
-                'cambios_nuevos' => json_encode($periodo->toArray())
             ]);
 
             return response()->json([
@@ -192,19 +192,17 @@ class PeriodoController extends Controller
                 Periodo::where('vigente', true)->where('id', '!=', $periodo->id)->update(['vigente' => false]);
             }
 
-            $cambios_previos = $periodo->toArray();
             $periodo->update($validated);
 
             // Registrar en bitácora
             $user = auth()->user();
             Bitacora::create([
                 'id_usuario' => $user->id,
-                'tipo_recurso' => 'periodo',
-                'id_recurso' => $periodo->id,
-                'operacion' => 'actualizar',
+                'ip_address' => IpHelper::getClientIp(),
+                'tabla' => 'periodos',
+                'operacion' => 'editar',
+                'id_registro' => $periodo->id,
                 'descripcion' => "Se actualizó el período {$periodo->nombre}",
-                'cambios_previos' => json_encode($cambios_previos),
-                'cambios_nuevos' => json_encode($periodo->toArray())
             ]);
 
             return response()->json([
@@ -241,19 +239,17 @@ class PeriodoController extends Controller
                 ], 422);
             }
 
-            $periodo_data = $periodo->toArray();
             $periodo->delete();
 
             // Registrar en bitácora
             $user = auth()->user();
             Bitacora::create([
                 'id_usuario' => $user->id,
-                'tipo_recurso' => 'periodo',
-                'id_recurso' => $periodo->id,
+                'ip_address' => IpHelper::getClientIp(),
+                'tabla' => 'periodos',
                 'operacion' => 'eliminar',
+                'id_registro' => $periodo->id,
                 'descripcion' => "Se eliminó el período {$periodo->nombre}",
-                'cambios_previos' => json_encode($periodo_data),
-                'cambios_nuevos' => null
             ]);
 
             return response()->json([
@@ -284,12 +280,11 @@ class PeriodoController extends Controller
             $user = auth()->user();
             Bitacora::create([
                 'id_usuario' => $user->id,
-                'tipo_recurso' => 'periodo',
-                'id_recurso' => $periodo->id,
-                'operacion' => 'marcar_vigente',
+                'ip_address' => IpHelper::getClientIp(),
+                'tabla' => 'periodos',
+                'operacion' => 'cambiar_estado',
+                'id_registro' => $periodo->id,
                 'descripcion' => "Se marcó el período {$periodo->nombre} como vigente",
-                'cambios_previos' => null,
-                'cambios_nuevos' => json_encode(['vigente' => true])
             ]);
 
             return response()->json([

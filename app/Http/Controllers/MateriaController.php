@@ -6,6 +6,7 @@ use App\Models\Materia;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Models\Bitacora;
+use App\Helpers\IpHelper;
 use Carbon\Carbon;
 
 class MateriaController extends Controller
@@ -282,6 +283,7 @@ class MateriaController extends Controller
             if ($userId) {
                 Bitacora::create([
                     'id_usuario' => $userId,
+                    'ip_address' => IpHelper::getClientIp(),
                     'tabla' => 'materias',
                     'operacion' => 'cambiar_estado',
                     'id_registro' => $materia->id,

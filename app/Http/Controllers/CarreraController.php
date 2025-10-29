@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Carrera;
 use App\Models\Bitacora;
+use App\Helpers\IpHelper;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -73,10 +74,12 @@ class CarreraController extends Controller
 
             // Registrar en bitácora
             Bitacora::create([
-                'id_user' => auth()->id(),
+                'id_usuario' => auth()->id(),
+                'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'carreras',
-                'operacion' => 'create',
-                'detalles' => "Carrera creada: {$carrera->nombre} ({$carrera->codigo})"
+                'operacion' => 'crear',
+                'id_registro' => $carrera->id,
+                'descripcion' => "Carrera creada: {$carrera->nombre} ({$carrera->codigo})"
             ]);
 
             return response()->json([
@@ -145,10 +148,12 @@ class CarreraController extends Controller
 
             // Registrar en bitácora
             Bitacora::create([
-                'id_user' => auth()->id(),
+                'id_usuario' => auth()->id(),
+                'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'carreras',
-                'operacion' => 'update',
-                'detalles' => "Carrera actualizada: {$carrera->nombre} (ID: {$carrera->id})"
+                'operacion' => 'editar',
+                'id_registro' => $carrera->id,
+                'descripcion' => "Carrera actualizada: {$carrera->nombre} (ID: {$carrera->id})"
             ]);
 
             return response()->json([
@@ -183,14 +188,17 @@ class CarreraController extends Controller
             $carrera = Carrera::findOrFail($id);
 
             $nombreCarrera = $carrera->nombre;
+            $carrierId = $carrera->id;
             $carrera->delete();
 
             // Registrar en bitácora
             Bitacora::create([
-                'id_user' => auth()->id(),
+                'id_usuario' => auth()->id(),
+                'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'carreras',
-                'operacion' => 'delete',
-                'detalles' => "Carrera eliminada: {$nombreCarrera}"
+                'operacion' => 'eliminar',
+                'id_registro' => $carrierId,
+                'descripcion' => "Carrera eliminada: {$nombreCarrera}"
             ]);
 
             return response()->json([

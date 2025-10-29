@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bitacora;
 use App\Models\User;
+use App\Helpers\IpHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -162,6 +163,7 @@ class BitacoraController extends Controller
         try {
             Bitacora::create([
                 'id_usuario' => $id_usuario,
+                'ip_address' => IpHelper::getClientIp(),
                 'tabla' => $tabla,
                 'operacion' => $operacion,
                 'id_registro' => $id_registro,
@@ -297,11 +299,12 @@ class BitacoraController extends Controller
             }
 
             $tablas = ['carreras', 'materias', 'docentes', 'grupos', 'aulas', 'horarios', 'usuarios', 'periodos'];
-            $operaciones = ['CREATE', 'UPDATE', 'DELETE', 'READ'];
+            $operaciones = ['crear', 'editar', 'eliminar', 'cambiar_estado'];
 
             for ($i = 0; $i < 50; $i++) {
                 Bitacora::create([
                     'id_usuario' => $users->random()->id,
+                    'ip_address' => IpHelper::getClientIp(),
                     'tabla' => $tablas[array_rand($tablas)],
                     'operacion' => $operaciones[array_rand($operaciones)],
                     'id_registro' => rand(1, 100),

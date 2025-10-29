@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Bitacora;
 use App\Models\User;
+use App\Helpers\IpHelper;
 
 class BitacoraSeeder extends Seeder
 {
@@ -116,6 +117,7 @@ class BitacoraSeeder extends Seeder
 
             Bitacora::create([
                 'id_usuario' => $admin->id,
+                'ip_address' => '127.0.0.1',
                 'tabla' => 'carreras',
                 'operacion' => 'CREATE',
                 'id_registro' => 1,
@@ -124,6 +126,7 @@ class BitacoraSeeder extends Seeder
 
             Bitacora::create([
                 'id_usuario' => $admin->id,
+                'ip_address' => '127.0.0.1',
                 'tabla' => 'usuarios',
                 'operacion' => 'UPDATE',
                 'id_registro' => $admin->id,
@@ -132,6 +135,7 @@ class BitacoraSeeder extends Seeder
 
             Bitacora::create([
                 'id_usuario' => $admin->id,
+                'ip_address' => '127.0.0.1',
                 'tabla' => 'periodos',
                 'operacion' => 'CREATE',
                 'id_registro' => 1,

@@ -7,6 +7,7 @@ use App\Models\Materia;
 use App\Models\Periodo;
 use App\Models\Bitacora;
 use App\Models\User;
+use App\Helpers\IpHelper;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -106,12 +107,11 @@ class GrupoController extends Controller
             $user = auth()->user();
             Bitacora::create([
                 'id_usuario' => $user->id,
-                'tipo_recurso' => 'grupo',
-                'id_recurso' => $grupo->id,
+                'ip_address' => IpHelper::getClientIp(),
+                'tabla' => 'grupos',
                 'operacion' => 'crear',
+                'id_registro' => $grupo->id,
                 'descripcion' => "Se creó el grupo {$grupo->paralelo} de la materia ID {$grupo->id_materia} para el periodo ID {$grupo->id_periodo}",
-                'cambios_previos' => null,
-                'cambios_nuevos' => json_encode($grupo->toArray())
             ]);
 
             $grupo->load(['materia', 'periodo']);
@@ -202,12 +202,11 @@ class GrupoController extends Controller
             $user = auth()->user();
             Bitacora::create([
                 'id_usuario' => $user->id,
-                'tipo_recurso' => 'grupo',
-                'id_recurso' => $grupo->id,
-                'operacion' => 'actualizar',
+                'ip_address' => IpHelper::getClientIp(),
+                'tabla' => 'grupos',
+                'operacion' => 'editar',
+                'id_registro' => $grupo->id,
                 'descripcion' => "Se actualizó el grupo {$grupo->paralelo}",
-                'cambios_previos' => json_encode($cambios_previos),
-                'cambios_nuevos' => json_encode($grupo->toArray())
             ]);
 
             $grupo->load(['materia', 'periodo']);
@@ -247,12 +246,11 @@ class GrupoController extends Controller
             $user = auth()->user();
             Bitacora::create([
                 'id_usuario' => $user->id,
-                'tipo_recurso' => 'grupo',
-                'id_recurso' => $grupo->id,
+                'ip_address' => IpHelper::getClientIp(),
+                'tabla' => 'grupos',
                 'operacion' => 'eliminar',
+                'id_registro' => $grupo->id,
                 'descripcion' => "Se eliminó el grupo {$grupo->paralelo}",
-                'cambios_previos' => json_encode($grupo_data),
-                'cambios_nuevos' => null
             ]);
 
             return response()->json([
