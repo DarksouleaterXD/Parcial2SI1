@@ -54,22 +54,42 @@ class AulasController extends Controller
     {
         try {
             $validated = $request->validate([
-                'codigo' => 'required|string|max:20|unique:aulas,codigo',
                 'nombre' => 'required|string|min:1|max:255',
                 'tipo' => 'required|in:teorica,practica,laboratorio,mixta',
                 'capacidad' => 'required|integer|min:1|max:500',
                 'ubicacion' => 'nullable|string|max:255',
-                'piso' => 'nullable|integer|min:0|max:20',
+                'numero_aula' => 'required|integer|min:1|max:9999',
                 'activo' => 'required|in:activo,inactivo'
             ]);
 
+            // Generar código automático basado en el número de aula
+            $numeroAula = $validated['numero_aula'];
+
+            // Determinar piso automáticamente según el número de aula
+            // 1-15 = Piso 1, 20-25 = Piso 2, 30-35 = Piso 3, 40-45 = Piso 4
+            $piso = (int) floor($numeroAula / 10);
+            if ($piso < 1) $piso = 1;
+            if ($piso > 4) $piso = 4;
+
+            // Generar código único: AULA_{numero}
+            $codigo = 'AULA_' . $numeroAula;
+
+            // Verificar si el código ya existe
+            $contador = 1;
+            $codigoOriginal = $codigo;
+            while (Aulas::where('codigo', $codigo)->exists()) {
+                $codigo = $codigoOriginal . '_' . $contador;
+                $contador++;
+            }
+
             $aula = Aulas::create([
-                'codigo' => $validated['codigo'],
+                'codigo' => $codigo,
                 'nombre' => $validated['nombre'],
                 'tipo' => $validated['tipo'],
                 'capacidad' => $validated['capacidad'],
                 'ubicacion' => $validated['ubicacion'] ?? null,
-                'piso' => $validated['piso'] ?? null,
+                'numero_aula' => $numeroAula,
+                'piso' => $piso,
                 'activo' => $validated['activo'] === 'activo' ? true : false,
             ]);
 
@@ -144,17 +164,48 @@ class AulasController extends Controller
             $aula = Aulas::findOrFail($id);
 
             $validated = $request->validate([
-                'codigo' => 'sometimes|required|string|max:20|unique:aulas,codigo,' . $id,
                 'nombre' => 'sometimes|required|string|min:1|max:255',
                 'tipo' => 'sometimes|required|in:teorica,practica,laboratorio,mixta',
                 'capacidad' => 'sometimes|required|integer|min:1|max:500',
                 'ubicacion' => 'nullable|string|max:255',
-                'piso' => 'nullable|integer|min:0|max:20',
+                'numero_aula' => 'sometimes|required|integer|min:1|max:9999',
                 'activo' => 'sometimes|required|in:activo,inactivo'
             ]);
 
             $cambios = [];
+
+            // Si cambió el número de aula, regenerar código y piso
+            if (isset($validated['numero_aula']) && $aula->numero_aula != $validated['numero_aula']) {
+                $numeroAula = $validated['numero_aula'];
+
+                // Determinar piso automáticamente
+                $piso = (int) floor($numeroAula / 10);
+                if ($piso < 1) $piso = 1;
+                if ($piso > 4) $piso = 4;
+
+                // Generar nuevo código
+                $codigo = 'AULA_' . $numeroAula;
+
+                // Verificar unicidad
+                $contador = 1;
+                $codigoOriginal = $codigo;
+                while (Aulas::where('codigo', $codigo)->where('id', '!=', $id)->exists()) {
+                    $codigo = $codigoOriginal . '_' . $contador;
+                    $contador++;
+                }
+
+                $cambios[] = "numero_aula: {$aula->numero_aula} → {$numeroAula}";
+                $cambios[] = "codigo: {$aula->codigo} → {$codigo}";
+                $cambios[] = "piso: {$aula->piso} → {$piso}";
+
+                $aula->numero_aula = $numeroAula;
+                $aula->codigo = $codigo;
+                $aula->piso = $piso;
+            }
+
             foreach ($validated as $key => $value) {
+                if ($key === 'numero_aula') continue; // Ya procesado arriba
+
                 if ($key === 'activo') {
                     $nuevoValor = $value === 'activo' ? true : false;
                     if ($aula->{$key} != $nuevoValor) {
@@ -162,7 +213,7 @@ class AulasController extends Controller
                         $aula->{$key} = $nuevoValor;
                     }
                 } else {
-                    if ($aula->{$key} != $value) {
+                    if (isset($aula->{$key}) && $aula->{$key} != $value) {
                         $cambios[] = "$key: {$aula->{$key}} → $value";
                         $aula->{$key} = $value;
                     }

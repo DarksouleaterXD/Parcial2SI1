@@ -20,6 +20,7 @@ class Aulas extends Model
         'tipo',
         'capacidad',
         'ubicacion',
+        'numero_aula',
         'piso',
         'activo',
     ];
@@ -27,6 +28,7 @@ class Aulas extends Model
     protected $casts = [
         'activo' => 'boolean',
         'capacidad' => 'integer',
+        'numero_aula' => 'integer',
         'piso' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

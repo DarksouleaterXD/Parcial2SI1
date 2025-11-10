@@ -19,6 +19,7 @@ use App\Http\Controllers\BloqueHorarioController;
 use App\Http\Controllers\CargaHorariaController;
 use App\Http\Controllers\HorarioDocenteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\RolPermisoController;
 
 /**
  * RUTAS PÚBLICAS (sin autenticación)
@@ -101,6 +102,14 @@ Route::middleware('auth:sanctum')->group(function () {
         // Personas
         Route::apiResource('personas', PersonaController::class);
         Route::get('/personas/{persona}/bitacora', [PersonaController::class, 'bitacora']);
+
+        // CU13 - Gestionar Roles y Permisos (RBAC)
+        Route::apiResource('roles', RolPermisoController::class);
+        Route::get('permisos', [RolPermisoController::class, 'listarPermisos']);
+        Route::get('modulos', [RolPermisoController::class, 'listarModulos']);
+        Route::get('acciones', [RolPermisoController::class, 'listarAcciones']);
+        Route::post('usuarios/{userId}/roles', [RolPermisoController::class, 'asignarRolAUsuario']);
+        Route::delete('usuarios/{userId}/roles/{rolId}', [RolPermisoController::class, 'removerRolDeUsuario']);
     });
 
     /**

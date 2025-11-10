@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Laravel\Sanctum\HasApiTokens;
 use App\Traits\TracksChanges;
 
@@ -84,5 +85,61 @@ class User extends Authenticatable
     public function docente()
     {
         return $this->hasOne(Docente::class, 'id_persona', 'id_persona');
+    }
+
+    /**
+     * Relación con roles RBAC
+     */
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Rol::class, 'usuario_rol', 'id_usuario', 'id_rol')
+            ->withPivot('asignado_en', 'asignado_por')
+            ->withTimestamps();
+    }
+
+    /**
+     * Verificar si el usuario tiene un rol específico
+     */
+    public function tieneRol(string $nombreRol): bool
+    {
+        return $this->roles()->where('nombre', $nombreRol)->exists();
+    }
+
+    /**
+     * Verificar si el usuario tiene un permiso específico
+     */
+    public function tienePermiso(string $nombrePermiso): bool
+    {
+        foreach ($this->roles as $rol) {
+            if ($rol->tienePermiso($nombrePermiso)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verificar si el usuario puede realizar una acción en un módulo
+     */
+    public function puedeEn(string $modulo, string $accion): bool
+    {
+        foreach ($this->roles as $rol) {
+            if ($rol->puedeEn($modulo, $accion)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Obtener todos los permisos del usuario (de todos sus roles)
+     */
+    public function obtenerPermisos()
+    {
+        $permisos = collect();
+        foreach ($this->roles as $rol) {
+            $permisos = $permisos->merge($rol->permisos);
+        }
+        return $permisos->unique('id');
     }
 }
