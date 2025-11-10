@@ -24,7 +24,6 @@ class Grupo extends Model
         'id_materia',
         'id_periodo',
         'paralelo',
-        'turno',
         'capacidad',
         'codigo',
     ];

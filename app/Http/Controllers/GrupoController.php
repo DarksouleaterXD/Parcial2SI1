@@ -39,11 +39,6 @@ class GrupoController extends Controller
                 $query->where('id_periodo', $request->id_periodo);
             }
 
-            // Filtro por turno
-            if ($request->has('turno') && $request->turno) {
-                $query->where('turno', $request->turno);
-            }
-
             // Paginación
             $grupos = $query->paginate(
                 $request->per_page ?? 15,
@@ -83,7 +78,6 @@ class GrupoController extends Controller
                 'id_materia' => ['required', 'integer', 'exists:materias,id'],
                 'id_periodo' => ['required', 'integer', 'exists:periodos,id'],
                 'paralelo' => ['required', 'string', 'max:2', 'regex:/^[A-Z]{1,2}$/'],
-                'turno' => ['required', 'in:mañana,tarde,noche'],
                 'capacidad' => ['required', 'integer', 'min:1', 'max:500'],
                 'codigo' => ['nullable', 'string', 'max:10', 'unique:grupos,codigo'],
             ]);
@@ -169,7 +163,6 @@ class GrupoController extends Controller
                 'id_materia' => ['sometimes', 'integer', 'exists:materias,id'],
                 'id_periodo' => ['sometimes', 'integer', 'exists:periodos,id'],
                 'paralelo' => ['sometimes', 'string', 'max:2', 'regex:/^[A-Z]{1,2}$/'],
-                'turno' => ['sometimes', 'in:mañana,tarde,noche'],
                 'capacidad' => ['sometimes', 'integer', 'min:1', 'max:500'],
                 'codigo' => ['sometimes', 'string', 'max:10', 'unique:grupos,codigo,' . $grupo->id],
             ]);

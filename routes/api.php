@@ -110,6 +110,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('acciones', [RolPermisoController::class, 'listarAcciones']);
         Route::post('usuarios/{userId}/roles', [RolPermisoController::class, 'asignarRolAUsuario']);
         Route::delete('usuarios/{userId}/roles/{rolId}', [RolPermisoController::class, 'removerRolDeUsuario']);
+
+        // Gestión completa de usuarios (CRUD)
+        Route::apiResource('usuarios', UserController::class);
     });
 
     /**
@@ -210,5 +213,5 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Rutas compartidas disponibles para todos autenticados
-    Route::apiResource('usuarios', UserController::class, ['only' => ['index', 'show']]);
+    // (ya no es necesario porque usuarios ya está en IsAdmin)
 });
