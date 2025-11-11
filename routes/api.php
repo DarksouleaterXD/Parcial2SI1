@@ -45,39 +45,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/usuarios-lista', [AuthController::class, 'listarUsuarios']);
         Route::post('/registrar-usuario', [AuthController::class, 'registrarUsuario']);
 
-        // CU3 - Gestionar Materias
-        Route::apiResource('materias', MateriaController::class);
-        Route::patch('materias/{materia}/estado', [MateriaController::class, 'updateEstado']);
-
-        // CU2 - Gestionar Docentes
-        Route::apiResource('docentes', DocenteController::class);
-        Route::patch('/docentes/{docente}/estado', [DocenteController::class, 'updateEstado']);
-
-        // CU4 - Gestionar Carreras
+        // CU4 - Gestionar Carreras (solo admin)
         Route::apiResource('carreras', CarreraController::class);
         Route::get('carreras-lista', [CarreraController::class, 'lista']);
 
-        // CU6 - Gestionar Periodos Académicos
+        // CU6 - Gestionar Periodos Académicos (solo admin puede crear/editar)
         Route::apiResource('periodos', PeriodoController::class);
         Route::patch('periodos/{periodo}/vigente', [PeriodoController::class, 'marcarVigente']);
-
-        // CU5 - Gestionar Grupos
-        Route::apiResource('grupos', GrupoController::class);
-
-        // CU7 - Gestionar Horarios
-        Route::apiResource('bloques-horarios', BloqueHorarioController::class);
-        Route::patch('bloques-horarios/{bloqueHorario}/estado', [BloqueHorarioController::class, 'updateEstado']);
-        Route::apiResource('horarios', HorarioController::class);
-
-        // CU7 - Gestionar Carga Horaria (Asignar docentes a grupos con horas/semana)
-        Route::apiResource('carga-horaria', CargaHorariaController::class);
-        Route::post('carga-horaria/por-grupo-periodo', [CargaHorariaController::class, 'porGrupoPeriodo']);
-        Route::post('carga-horaria/por-docente-periodo', [CargaHorariaController::class, 'porDocentePeriodo']);
-
-        // CU10 - Tablero Administrativo (Dashboard)
-        Route::get('dashboard/kpis', [DashboardController::class, 'kpis']);
-        Route::get('dashboard/graficos', [DashboardController::class, 'graficos']);
-        Route::get('dashboard/catalogos', [DashboardController::class, 'catalogos']);
 
         // CU20 - Bitácora (solo admin puede ver todo)
         // Rutas específicas primero (antes de {bitacora})
@@ -123,39 +97,46 @@ Route::middleware('auth:sanctum')->group(function () {
         // CU4 - Gestionar Aulas
         Route::apiResource('aulas', AulasController::class);
         Route::patch('aulas/{aula}/estado', [AulasController::class, 'updateEstado']);
-        
+
         // CU9 - Consultar Disponibilidad de Aulas
         Route::get('aulas-disponibilidad', [AulasController::class, 'disponibilidad']);
-    });
 
-    /**
-     * RUTAS COORDINADOR
-     * Puede: CU2 (Docentes), CU3 (Materias), CU4 (Aulas), CU5 (Grupos), CU6 (Periodos-lectura), CU7 (Horarios), CU8-9 (Consultas), CU14-15 (Asignación)
-     */
-    Route::middleware('IsCoordinador')->group(function () {
-        Route::apiResource('materias', MateriaController::class);
-        Route::patch('materias/{materia}/estado', [MateriaController::class, 'updateEstado']);
-        Route::apiResource('docentes', DocenteController::class);
-        Route::patch('/docentes/{docente}/estado', [DocenteController::class, 'updateEstado']);
+        // CU7 - Gestionar Horarios (Admin y Coordinador)
         Route::apiResource('bloques-horarios', BloqueHorarioController::class);
         Route::patch('bloques-horarios/{bloqueHorario}/estado', [BloqueHorarioController::class, 'updateEstado']);
-        Route::apiResource('grupos', GrupoController::class);
         Route::apiResource('horarios', HorarioController::class);
 
-        // CU7 - Gestionar Carga Horaria (Asignar docentes a grupos con horas/semana)
+        // CU7 - Gestionar Carga Horaria
         Route::apiResource('carga-horaria', CargaHorariaController::class);
         Route::post('carga-horaria/por-grupo-periodo', [CargaHorariaController::class, 'porGrupoPeriodo']);
         Route::post('carga-horaria/por-docente-periodo', [CargaHorariaController::class, 'porDocentePeriodo']);
 
-        // CU8 - Consultar Horario Semanal (Coordinador consulta horario de docentes)
-        Route::get('docentes-horarios', [HorarioDocenteController::class, 'listadoDocentesHorarios']);
-        Route::get('horario-docente/{id_docente}', [HorarioDocenteController::class, 'horarioDocente']);
+        // CU5 - Gestionar Grupos
+        Route::apiResource('grupos', GrupoController::class);
+
+        // CU3 - Gestionar Materias
+        Route::apiResource('materias', MateriaController::class);
+        Route::patch('materias/{materia}/estado', [MateriaController::class, 'updateEstado']);
+
+        // CU2 - Gestionar Docentes
+        Route::apiResource('docentes', DocenteController::class);
+        Route::patch('/docentes/{docente}/estado', [DocenteController::class, 'updateEstado']);
 
         // CU10 - Tablero Administrativo (Dashboard)
         Route::get('dashboard/kpis', [DashboardController::class, 'kpis']);
         Route::get('dashboard/graficos', [DashboardController::class, 'graficos']);
         Route::get('dashboard/catalogos', [DashboardController::class, 'catalogos']);
 
+        // CU8 - Consultar Horario Semanal (Coordinador consulta horario de docentes)
+        Route::get('docentes-horarios', [HorarioDocenteController::class, 'listadoDocentesHorarios']);
+        Route::get('horario-docente/{id_docente}', [HorarioDocenteController::class, 'horarioDocente']);
+    });
+
+    /**
+     * RUTAS COORDINADOR (adicionales - Bitácora y consulta de períodos)
+     * Las rutas principales de coordinador están en el middleware compartido IsAdminOrCoordinador
+     */
+    Route::middleware('IsCoordinador')->group(function () {
         // CU20 - Bitácora (Coordinador puede ver bitácora)
         Route::get('bitacoras/seed/datos-prueba', [BitacoraController::class, 'seedDatos']);
         Route::get('bitacoras/estadisticas/resumen', [BitacoraController::class, 'estadisticas']);
@@ -165,13 +146,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('bitacoras', [BitacoraController::class, 'index']);
         Route::get('bitacoras/{bitacora}', [BitacoraController::class, 'show']);
 
-        // CU6 - Coordinador solo puede consultar periodos
+        // CU6 - Coordinador solo puede consultar periodos (no crear/editar)
         Route::get('periodos', [PeriodoController::class, 'index']);
         Route::get('periodos/{periodo}', [PeriodoController::class, 'show']);
-
-        // CU3 - Coordinador puede consultar materias (necesario para crear grupos)
-        Route::get('materias', [MateriaController::class, 'index']);
-        Route::get('materias/{materia}', [MateriaController::class, 'show']);
     });
 
     /**
