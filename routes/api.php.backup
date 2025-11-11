@@ -64,6 +64,13 @@ Route::middleware('auth:sanctum')->group(function () {
         // CU5 - Gestionar Grupos
         Route::apiResource('grupos', GrupoController::class);
 
+        // CU4 - Gestionar Aulas
+        Route::apiResource('aulas', AulasController::class);
+        Route::patch('aulas/{aula}/estado', [AulasController::class, 'updateEstado']);
+
+        // CU9 - Consultar Disponibilidad de Aulas
+        Route::get('aulas-disponibilidad', [AulasController::class, 'disponibilidad']);
+
         // CU7 - Gestionar Horarios
         Route::apiResource('bloques-horarios', BloqueHorarioController::class);
         Route::patch('bloques-horarios/{bloqueHorario}/estado', [BloqueHorarioController::class, 'updateEstado']);
@@ -116,19 +123,6 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     /**
-     * RUTAS COMPARTIDAS: ADMIN Y COORDINADOR
-     * Ambos roles tienen acceso completo a estos recursos
-     */
-    Route::middleware('IsAdminOrCoordinador')->group(function () {
-        // CU4 - Gestionar Aulas
-        Route::apiResource('aulas', AulasController::class);
-        Route::patch('aulas/{aula}/estado', [AulasController::class, 'updateEstado']);
-        
-        // CU9 - Consultar Disponibilidad de Aulas
-        Route::get('aulas-disponibilidad', [AulasController::class, 'disponibilidad']);
-    });
-
-    /**
      * RUTAS COORDINADOR
      * Puede: CU2 (Docentes), CU3 (Materias), CU4 (Aulas), CU5 (Grupos), CU6 (Periodos-lectura), CU7 (Horarios), CU8-9 (Consultas), CU14-15 (Asignación)
      */
@@ -137,6 +131,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('materias/{materia}/estado', [MateriaController::class, 'updateEstado']);
         Route::apiResource('docentes', DocenteController::class);
         Route::patch('/docentes/{docente}/estado', [DocenteController::class, 'updateEstado']);
+        Route::apiResource('aulas', AulasController::class);
+        Route::patch('aulas/{aula}/estado', [AulasController::class, 'updateEstado']);
         Route::apiResource('bloques-horarios', BloqueHorarioController::class);
         Route::patch('bloques-horarios/{bloqueHorario}/estado', [BloqueHorarioController::class, 'updateEstado']);
         Route::apiResource('grupos', GrupoController::class);
@@ -150,6 +146,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // CU8 - Consultar Horario Semanal (Coordinador consulta horario de docentes)
         Route::get('docentes-horarios', [HorarioDocenteController::class, 'listadoDocentesHorarios']);
         Route::get('horario-docente/{id_docente}', [HorarioDocenteController::class, 'horarioDocente']);
+
+        // CU9 - Consultar Disponibilidad de Aulas
+        Route::get('aulas-disponibilidad', [AulasController::class, 'disponibilidad']);
 
         // CU10 - Tablero Administrativo (Dashboard)
         Route::get('dashboard/kpis', [DashboardController::class, 'kpis']);
