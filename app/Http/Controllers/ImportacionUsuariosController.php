@@ -234,7 +234,7 @@ class ImportacionUsuariosController extends Controller
                             'trace' => $e->getTraceAsString(),
                             'datos' => $fila['datos'],
                         ]);
-                        
+
                         $erroresCreacion[] = [
                             'fila' => $fila['fila'],
                             'error' => $e->getMessage(),
