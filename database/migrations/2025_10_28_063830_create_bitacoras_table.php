@@ -15,8 +15,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('id_usuario')->constrained('usuarios')->onDelete('cascade');
             $table->string('tabla')->comment('Nombre de la tabla modificada');
-            $table->enum('operacion', ['crear', 'editar', 'eliminar', 'cambiar_estado'])->comment('Tipo de operación realizada');
-            $table->unsignedBigInteger('id_registro')->comment('ID del registro en la tabla');
+            $table->enum('operacion', [
+                'crear',
+                'editar',
+                'eliminar',
+                'cambiar_estado',
+                'importacion_masiva',
+                'exportacion',
+            ])->comment('Tipo de operación realizada');
+            $table->unsignedBigInteger('id_registro')->nullable()->comment('ID del registro en la tabla (nullable para operaciones masivas)');
             $table->text('descripcion')->nullable()->comment('Descripción de los cambios');
             $table->timestamps();
 

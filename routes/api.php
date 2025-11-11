@@ -20,6 +20,7 @@ use App\Http\Controllers\CargaHorariaController;
 use App\Http\Controllers\HorarioDocenteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RolPermisoController;
+use App\Http\Controllers\ImportacionUsuariosController;
 
 /**
  * RUTAS PÚBLICAS (sin autenticación)
@@ -110,6 +111,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('acciones', [RolPermisoController::class, 'listarAcciones']);
         Route::post('usuarios/{userId}/roles', [RolPermisoController::class, 'asignarRolAUsuario']);
         Route::delete('usuarios/{userId}/roles/{rolId}', [RolPermisoController::class, 'removerRolDeUsuario']);
+
+        // CU12 - Importar Usuarios en Lote (DEBE IR ANTES de apiResource)
+        Route::get('usuarios/importar/plantilla', [ImportacionUsuariosController::class, 'descargarPlantilla']);
+        Route::post('usuarios/importar/validar', [ImportacionUsuariosController::class, 'validarArchivo']);
+        Route::post('usuarios/importar/confirmar', [ImportacionUsuariosController::class, 'confirmarImportacion']);
+        Route::get('usuarios/importar/historial', [ImportacionUsuariosController::class, 'historial']);
 
         // Gestión completa de usuarios (CRUD)
         Route::apiResource('usuarios', UserController::class);
