@@ -55,21 +55,21 @@ DB::beginTransaction();
 try {
     foreach ($filasValidas as $fila) {
         echo "📝 Procesando fila {$fila['fila']}...\n";
-        
+
         try {
             $datos = $fila['datos'];
-            
+
             // Verificar datos
             echo "   CI: {$datos['ci']}\n";
             echo "   Email: {$datos['email']}\n";
-            
+
             // Verificar si ya existe
             $personaExiste = Persona::where('ci', $datos['ci'])->exists();
             $usuarioExiste = User::where('email', $datos['email'])->exists();
-            
+
             echo "   Persona existe: " . ($personaExiste ? 'SÍ' : 'NO') . "\n";
             echo "   Usuario existe: " . ($usuarioExiste ? 'SÍ' : 'NO') . "\n";
-            
+
             if ($personaExiste || $usuarioExiste) {
                 echo "   ⚠️ DUPLICADO - Saltando creación\n\n";
                 $erroresCreacion[] = [
@@ -78,7 +78,7 @@ try {
                 ];
                 continue;
             }
-            
+
             // Crear Persona
             $persona = Persona::create([
                 'ci' => $datos['ci'],
@@ -89,9 +89,9 @@ try {
                 'telefono' => $datos['telefono'],
                 'fecha_nacimiento' => $datos['fecha_nacimiento'],
             ]);
-            
+
             echo "   ✅ Persona creada con ID: {$persona->id}\n";
-            
+
             // Crear Usuario
             $usuario = User::create([
                 'nombre' => $datos['nombre'] . ' ' . $datos['apellido_paterno'],
@@ -100,15 +100,15 @@ try {
                 'rol' => $datos['rol'],
                 'id_persona' => $persona->id,
             ]);
-            
+
             echo "   ✅ Usuario creado con ID: {$usuario->id}\n\n";
-            
+
             $usuariosCreados[] = [
                 'fila' => $fila['fila'],
                 'usuario_id' => $usuario->id,
                 'email' => $usuario->email,
             ];
-            
+
         } catch (\Exception $e) {
             echo "   ❌ ERROR: {$e->getMessage()}\n\n";
             $erroresCreacion[] = [
@@ -117,11 +117,11 @@ try {
             ];
         }
     }
-    
+
     echo "\n🎯 Resultados finales:\n";
     echo "   Usuarios creados: " . count($usuariosCreados) . "\n";
     echo "   Errores: " . count($erroresCreacion) . "\n\n";
-    
+
     if (!empty($erroresCreacion)) {
         echo "📋 Detalle de errores:\n";
         foreach ($erroresCreacion as $error) {
@@ -129,10 +129,10 @@ try {
         }
         echo "\n";
     }
-    
+
     echo "⚠️ Haciendo ROLLBACK (no se guardarán los cambios)\n";
     DB::rollBack();
-    
+
 } catch (\Exception $e) {
     DB::rollBack();
     echo "❌ Error general: {$e->getMessage()}\n";
