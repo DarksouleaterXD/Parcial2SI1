@@ -106,6 +106,8 @@ class UserController extends Controller
                 'rol' => 'required|in:admin,coordinador,autoridad,docente',
                 'ci' => 'nullable|string|unique:personas,ci',
                 'apellido' => 'nullable|string|max:255',
+                'apellido_paterno' => 'nullable|string|max:255',
+                'apellido_materno' => 'nullable|string|max:255',
                 'telefono' => 'nullable|string|max:20',
                 'roles_rbac' => 'nullable|array',
                 'roles_rbac.*' => 'exists:roles,id',
@@ -121,9 +123,15 @@ class UserController extends Controller
             // Crear persona si se proporciona CI
             $personaId = null;
             if (isset($validated['ci'])) {
+                // Si hay apellidos separados, usarlos, si no, usar apellido completo
+                $apellidoPaterno = $validated['apellido_paterno'] ?? ($validated['apellido'] ?? '');
+                $apellidoMaterno = $validated['apellido_materno'] ?? '';
+
                 $persona = Persona::create([
                     'nombre' => $validated['nombre'],
-                    'apellido' => $validated['apellido'] ?? '',
+                    'apellido_paterno' => $apellidoPaterno,
+                    'apellido_materno' => $apellidoMaterno,
+                    'apellido' => $validated['apellido'] ?? ($apellidoPaterno . ' ' . $apellidoMaterno),
                     'ci' => $validated['ci'],
                     'correo' => $validated['email'],
                     'telefono' => $validated['telefono'] ?? null,
@@ -140,6 +148,36 @@ class UserController extends Controller
                 'activo' => true,
                 'id_persona' => $personaId,
             ]);
+
+            // Si el rol es docente, crear registro en tabla docentes
+            if ($validated['rol'] === 'docente') {
+                // Si no se creó persona, crearla ahora (es requerida para docentes)
+                if (!$personaId) {
+                    $apellidoPaterno = $validated['apellido_paterno'] ?? ($validated['apellido'] ?? '');
+                    $apellidoMaterno = $validated['apellido_materno'] ?? '';
+
+                    $persona = Persona::create([
+                        'nombre' => $validated['nombre'],
+                        'apellido_paterno' => $apellidoPaterno,
+                        'apellido_materno' => $apellidoMaterno,
+                        'apellido' => $validated['apellido'] ?? ($apellidoPaterno . ' ' . $apellidoMaterno),
+                        'ci' => $validated['ci'] ?? 'TEMP-' . time(),
+                        'correo' => $validated['email'],
+                        'telefono' => $validated['telefono'] ?? null,
+                        'id_usuario' => $usuario->id,
+                    ]);
+                    $personaId = $persona->id;
+
+                    // Actualizar el usuario con el id_persona
+                    $usuario->update(['id_persona' => $personaId]);
+                }
+
+                // Crear docente
+                \App\Models\Docente::create([
+                    'id_persona' => $personaId,
+                    'activo' => true,
+                ]);
+            }
 
             // Asignar roles RBAC
             if (isset($validated['roles_rbac']) && is_array($validated['roles_rbac'])) {
@@ -165,7 +203,7 @@ class UserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Usuario creado correctamente',
+                'message' => 'Usuario creado correctamente' . ($validated['rol'] === 'docente' ? ' y registrado como docente' : ''),
                 'data' => $usuario,
             ], 201);
 
@@ -221,7 +259,39 @@ class UserController extends Controller
 
             if (isset($validated['rol']) && $validated['rol'] !== $usuario->rol) {
                 $cambios[] = "Rol: {$usuario->rol} → {$validated['rol']}";
+                $rolAnterior = $usuario->rol;
                 $usuario->rol = $validated['rol'];
+
+                // Si cambia a docente, crear registro en tabla docentes
+                if ($validated['rol'] === 'docente' && $rolAnterior !== 'docente') {
+                    // Verificar si ya existe un registro de docente
+                    $docenteExiste = \App\Models\Docente::whereHas('persona', function($q) use ($usuario) {
+                        $q->where('id_usuario', $usuario->id);
+                    })->exists();
+
+                    if (!$docenteExiste) {
+                        // Si no tiene persona, crearla
+                        if (!$usuario->id_persona) {
+                            $persona = Persona::create([
+                                'nombre' => $usuario->nombre,
+                                'apellido_paterno' => '',
+                                'apellido_materno' => '',
+                                'ci' => 'TEMP-' . time() . '-' . $usuario->id,
+                                'correo' => $usuario->email,
+                                'id_usuario' => $usuario->id,
+                            ]);
+                            $usuario->id_persona = $persona->id;
+                        }
+
+                        // Crear docente
+                        \App\Models\Docente::create([
+                            'id_persona' => $usuario->id_persona,
+                            'activo' => $usuario->activo,
+                        ]);
+
+                        $cambios[] = "Registrado como docente";
+                    }
+                }
             }
 
             if (isset($validated['activo']) && $validated['activo'] !== $usuario->activo) {

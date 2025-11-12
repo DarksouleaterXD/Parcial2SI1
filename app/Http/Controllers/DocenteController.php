@@ -38,6 +38,7 @@ class DocenteController extends Controller
         $data = $docentes->map(function ($docente) {
             return [
                 'id' => $docente->id,
+                'id_persona' => $docente->id_persona,
                 'ci' => $docente->persona->ci,
                 'nombre' => $docente->persona->nombre,
                 'correo' => $docente->persona->correo,
@@ -45,6 +46,15 @@ class DocenteController extends Controller
                 'estado' => $docente->activo ? 'activo' : 'inactivo',
                 'created_at' => $docente->created_at,
                 'updated_at' => $docente->updated_at,
+                'persona' => [
+                    'id' => $docente->persona->id,
+                    'nombre' => $docente->persona->nombre,
+                    'apellido_paterno' => $docente->persona->apellido_paterno,
+                    'apellido_materno' => $docente->persona->apellido_materno,
+                    'ci' => $docente->persona->ci,
+                    'correo' => $docente->persona->correo,
+                    'telefono' => $docente->persona->telefono ?? '',
+                ],
             ];
         });
 
@@ -66,6 +76,8 @@ class DocenteController extends Controller
         $validated = $request->validate([
             'ci' => ['required', 'string', 'unique:personas,ci'],
             'nombre' => 'required|string|max:255',
+            'apellido_paterno' => 'required|string|max:255',
+            'apellido_materno' => 'nullable|string|max:255',
             'correo' => ['required', 'email', 'unique:personas,correo', 'unique:usuarios,email'],
             'telefono' => 'nullable|digits_between:7,15',
             'contrasena' => 'required|string|min:8',
@@ -76,6 +88,7 @@ class DocenteController extends Controller
             'correo.email' => 'El correo debe ser válido',
             'ci.required' => 'El CI es obligatorio',
             'nombre.required' => 'El nombre es obligatorio',
+            'apellido_paterno.required' => 'El apellido paterno es obligatorio',
             'correo.required' => 'El correo es obligatorio',
             'contrasena.required' => 'La contraseña es obligatoria',
             'contrasena.min' => 'La contraseña debe tener al menos 8 caracteres',
@@ -86,7 +99,7 @@ class DocenteController extends Controller
         try {
             // Crear Usuario
             $usuario = User::create([
-                'nombre' => $validated['nombre'],
+                'nombre' => $validated['nombre'] . ' ' . $validated['apellido_paterno'] . ' ' . ($validated['apellido_materno'] ?? ''),
                 'email' => $validated['correo'],
                 'password' => Hash::make($validated['contrasena']),
                 'rol' => 'docente',
@@ -97,6 +110,8 @@ class DocenteController extends Controller
             $persona = Persona::create([
                 'ci' => $validated['ci'],
                 'nombre' => $validated['nombre'],
+                'apellido_paterno' => $validated['apellido_paterno'],
+                'apellido_materno' => $validated['apellido_materno'] ?? null,
                 'correo' => $validated['correo'],
                 'telefono' => $validated['telefono'] ?? null,
                 'id_usuario' => $usuario->id,
@@ -171,6 +186,8 @@ class DocenteController extends Controller
         $validated = $request->validate([
             'ci' => ['sometimes', 'required', 'string', Rule::unique('personas', 'ci')->ignore($docente->persona->id)],
             'nombre' => 'sometimes|required|string|max:255',
+            'apellido_paterno' => 'sometimes|required|string|max:255',
+            'apellido_materno' => 'nullable|string|max:255',
             'correo' => ['sometimes', 'required', 'email', Rule::unique('personas', 'correo')->ignore($docente->persona->id), Rule::unique('usuarios', 'email')->ignore($docente->usuario->id ?? null)],
             'telefono' => 'nullable|digits_between:7,15',
             'contrasena' => 'nullable|string|min:8',
@@ -186,11 +203,15 @@ class DocenteController extends Controller
         try {
             $cambios = [];
 
-            // Actualizar Usuario si existe y hay cambios en correo o contraseña
+            // Actualizar Usuario si existe y hay cambios
             if ($docente->usuario) {
-                if (isset($validated['nombre']) && $validated['nombre'] !== $docente->usuario->nombre) {
-                    $cambios[] = "Nombre usuario: {$docente->usuario->nombre} → {$validated['nombre']}";
-                    $docente->usuario->nombre = $validated['nombre'];
+                $nombreCompleto = ($validated['nombre'] ?? $docente->persona->nombre) . ' ' .
+                                 ($validated['apellido_paterno'] ?? $docente->persona->apellido_paterno) . ' ' .
+                                 ($validated['apellido_materno'] ?? $docente->persona->apellido_materno ?? '');
+
+                if ($nombreCompleto !== $docente->usuario->nombre) {
+                    $cambios[] = "Nombre usuario: {$docente->usuario->nombre} → {$nombreCompleto}";
+                    $docente->usuario->nombre = $nombreCompleto;
                 }
 
                 if (isset($validated['correo']) && $validated['correo'] !== $docente->usuario->email) {
@@ -217,6 +238,20 @@ class DocenteController extends Controller
             if (isset($validated['nombre']) && $validated['nombre'] !== $docente->persona->nombre) {
                 $cambios[] = "Nombre: {$docente->persona->nombre} → {$validated['nombre']}";
                 $docente->persona->nombre = $validated['nombre'];
+            }
+
+            if (isset($validated['apellido_paterno']) && $validated['apellido_paterno'] !== $docente->persona->apellido_paterno) {
+                $cambios[] = "Apellido Paterno: {$docente->persona->apellido_paterno} → {$validated['apellido_paterno']}";
+                $docente->persona->apellido_paterno = $validated['apellido_paterno'];
+            }
+
+            if (isset($validated['apellido_materno'])) {
+                $apellidoMaternoActual = $docente->persona->apellido_materno ?? '';
+                $apellidoMaternoNuevo = $validated['apellido_materno'] ?? '';
+                if ($apellidoMaternoNuevo !== $apellidoMaternoActual) {
+                    $cambios[] = "Apellido Materno: {$apellidoMaternoActual} → {$apellidoMaternoNuevo}";
+                    $docente->persona->apellido_materno = $apellidoMaternoNuevo;
+                }
             }
 
             if (isset($validated['correo']) && $validated['correo'] !== $docente->persona->correo) {

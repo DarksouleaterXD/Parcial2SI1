@@ -82,7 +82,7 @@ class HorarioController extends Controller
             $validator = Validator::make($request->all(), [
                 'id_grupo' => 'required|exists:grupos,id',
                 'id_aula' => 'required|exists:aulas,id',
-                'id_docente' => 'required|exists:docentes,id',
+                'id_docente' => 'nullable|exists:docentes,id',
                 'hora_inicio' => 'required|date_format:H:i',
                 'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
                 'dia_semana' => 'required|string|in:lunes,martes,miércoles,jueves,viernes',
@@ -98,10 +98,17 @@ class HorarioController extends Controller
                 ], 422);
             }
 
+            // Si no se proporciona id_docente, heredarlo del grupo
+            $idDocente = $request->id_docente;
+            if (!$idDocente) {
+                $grupo = \App\Models\Grupo::find($request->id_grupo);
+                $idDocente = $grupo->id_docente;
+            }
+
             $horario = Horario::create([
                 'id_grupo' => $request->id_grupo,
                 'id_aula' => $request->id_aula,
-                'id_docente' => $request->id_docente,
+                'id_docente' => $idDocente,
                 'hora_inicio' => $request->hora_inicio,
                 'hora_fin' => $request->hora_fin,
                 'dia_semana' => $request->dia_semana,
@@ -159,7 +166,7 @@ class HorarioController extends Controller
             $validator = Validator::make($request->all(), [
                 'id_grupo' => 'exists:grupos,id',
                 'id_aula' => 'exists:aulas,id',
-                'id_docente' => 'exists:docentes,id',
+                'id_docente' => 'nullable|exists:docentes,id',
                 'hora_inicio' => 'date_format:H:i',
                 'hora_fin' => 'date_format:H:i|after:hora_inicio',
                 'dia_semana' => 'string|in:lunes,martes,miércoles,jueves,viernes',
@@ -175,16 +182,26 @@ class HorarioController extends Controller
                 ], 422);
             }
 
-            $horario->update($request->only([
+            // Preparar datos para actualizar
+            $dataToUpdate = $request->only([
                 'id_grupo',
                 'id_aula',
-                'id_docente',
                 'hora_inicio',
                 'hora_fin',
                 'dia_semana',
                 'activo',
                 'descripcion',
-            ]));
+            ]);
+
+            // Si se cambió el grupo o no se proporciona id_docente, heredarlo del grupo
+            if ($request->has('id_grupo') && !$request->has('id_docente')) {
+                $grupo = \App\Models\Grupo::find($request->id_grupo);
+                $dataToUpdate['id_docente'] = $grupo->id_docente;
+            } elseif ($request->has('id_docente')) {
+                $dataToUpdate['id_docente'] = $request->id_docente;
+            }
+
+            $horario->update($dataToUpdate);
 
             // Registrar en bitácora
             Bitacora::create([

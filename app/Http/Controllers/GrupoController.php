@@ -20,7 +20,7 @@ class GrupoController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Grupo::with(['materia', 'periodo'])
+            $query = Grupo::with(['materia', 'periodo', 'docente.persona'])
                 ->orderBy('created_at', 'desc');
 
             // Filtro por búsqueda (paralelo)
@@ -77,6 +77,7 @@ class GrupoController extends Controller
             $validated = $request->validate([
                 'id_materia' => ['required', 'integer', 'exists:materias,id'],
                 'id_periodo' => ['required', 'integer', 'exists:periodos,id'],
+                'id_docente' => ['nullable', 'integer', 'exists:docentes,id'],
                 'paralelo' => ['required', 'string', 'max:2', 'regex:/^[A-Z]{1,2}$/'],
                 'capacidad' => ['required', 'integer', 'min:1', 'max:500'],
                 'codigo' => ['nullable', 'string', 'max:10', 'unique:grupos,codigo'],
@@ -95,6 +96,21 @@ class GrupoController extends Controller
                 ], 422);
             }
 
+            // Validar que el docente no tenga otro grupo de la misma materia en el mismo periodo
+            if (!empty($validated['id_docente'])) {
+                $docenteYaTieneMateria = Grupo::where('id_docente', $validated['id_docente'])
+                    ->where('id_materia', $validated['id_materia'])
+                    ->where('id_periodo', $validated['id_periodo'])
+                    ->exists();
+
+                if ($docenteYaTieneMateria) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'El docente ya tiene asignado otro grupo (paralelo) de esta materia en este periodo. Un docente no puede tener múltiples paralelos de la misma materia.'
+                    ], 422);
+                }
+            }
+
             // Crear grupo
             $grupo = Grupo::create($validated);
 
@@ -109,7 +125,7 @@ class GrupoController extends Controller
                 'descripcion' => "Se creó el grupo {$grupo->paralelo} de la materia ID {$grupo->id_materia} para el periodo ID {$grupo->id_periodo}",
             ]);
 
-            $grupo->load(['materia', 'periodo']);
+            $grupo->load(['materia', 'periodo', 'docente.persona']);
 
             return response()->json([
                 'success' => true,
@@ -137,7 +153,7 @@ class GrupoController extends Controller
     public function show(Grupo $grupo)
     {
         try {
-            $grupo->load(['materia', 'periodo', 'docentes', 'horarios', 'aulas']);
+            $grupo->load(['materia', 'periodo', 'docente.persona', 'docentes', 'horarios', 'aulas']);
 
             return response()->json([
                 'success' => true,
@@ -158,13 +174,17 @@ class GrupoController extends Controller
     public function update(Request $request, Grupo $grupo)
     {
         try {
+            // LOG TEMPORAL: Ver qué datos llegan
+            \Log::info('UPDATE GRUPO - Datos recibidos:', $request->all());
+
             // Validar datos entrada
             $validated = $request->validate([
                 'id_materia' => ['sometimes', 'integer', 'exists:materias,id'],
                 'id_periodo' => ['sometimes', 'integer', 'exists:periodos,id'],
+                'id_docente' => ['sometimes', 'nullable', 'integer', 'exists:docentes,id'],
                 'paralelo' => ['sometimes', 'string', 'max:2', 'regex:/^[A-Z]{1,2}$/'],
                 'capacidad' => ['sometimes', 'integer', 'min:1', 'max:500'],
-                'codigo' => ['sometimes', 'string', 'max:10', 'unique:grupos,codigo,' . $grupo->id],
+                'codigo' => ['sometimes', 'nullable', 'string', 'max:10', 'unique:grupos,codigo,' . $grupo->id],
             ]);
 
             // Si se cambió materia, periodo o paralelo, validar unicidad
@@ -183,6 +203,25 @@ class GrupoController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => 'Ya existe otro grupo con esta combinación de materia, periodo y paralelo'
+                    ], 422);
+                }
+            }
+
+            // Validar que el docente no tenga otro grupo de la misma materia en el mismo periodo
+            if (isset($validated['id_docente']) && !empty($validated['id_docente'])) {
+                $id_materia = $validated['id_materia'] ?? $grupo->id_materia;
+                $id_periodo = $validated['id_periodo'] ?? $grupo->id_periodo;
+
+                $docenteYaTieneMateria = Grupo::where('id_docente', $validated['id_docente'])
+                    ->where('id_materia', $id_materia)
+                    ->where('id_periodo', $id_periodo)
+                    ->where('id', '!=', $grupo->id)
+                    ->exists();
+
+                if ($docenteYaTieneMateria) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'El docente ya tiene asignado otro grupo (paralelo) de esta materia en este periodo. Un docente no puede tener múltiples paralelos de la misma materia.'
                     ], 422);
                 }
             }

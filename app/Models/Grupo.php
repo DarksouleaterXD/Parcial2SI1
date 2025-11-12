@@ -23,6 +23,7 @@ class Grupo extends Model
     protected $fillable = [
         'id_materia',
         'id_periodo',
+        'id_docente',
         'paralelo',
         'capacidad',
         'codigo',
@@ -53,6 +54,14 @@ class Grupo extends Model
     public function periodo(): BelongsTo
     {
         return $this->belongsTo(Periodo::class, 'id_periodo', 'id');
+    }
+
+    /**
+     * Relación: Un grupo pertenece a un Docente
+     */
+    public function docente(): BelongsTo
+    {
+        return $this->belongsTo(Docente::class, 'id_docente', 'id');
     }
 
     /**

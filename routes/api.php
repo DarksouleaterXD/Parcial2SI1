@@ -21,6 +21,7 @@ use App\Http\Controllers\HorarioDocenteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RolPermisoController;
 use App\Http\Controllers\ImportacionUsuariosController;
+use App\Http\Controllers\SesionController;
 
 /**
  * RUTAS PÚBLICAS (sin autenticación)
@@ -130,6 +131,15 @@ Route::middleware('auth:sanctum')->group(function () {
         // CU8 - Consultar Horario Semanal (Coordinador consulta horario de docentes)
         Route::get('docentes-horarios', [HorarioDocenteController::class, 'listadoDocentesHorarios']);
         Route::get('horario-docente/{id_docente}', [HorarioDocenteController::class, 'horarioDocente']);
+
+        // CU16 - Validar Asistencias (Coordinador)
+        Route::get('asistencias/pendientes', [AsistenciaController::class, 'pendientesValidacion']);
+        Route::patch('asistencias/{id}/validar', [AsistenciaController::class, 'validar']);
+
+        // Gestión de sesiones
+        Route::apiResource('sesiones', SesionController::class);
+        Route::post('sesiones/generar', [SesionController::class, 'generarSesiones']);
+        Route::patch('sesiones/{id}/cancelar', [SesionController::class, 'cancelar']);
     });
 
     /**
@@ -187,11 +197,15 @@ Route::middleware('auth:sanctum')->group(function () {
         // CU8 - Consultar Horario Semanal (Mi Horario)
         Route::get('mi-horario', [HorarioDocenteController::class, 'miHorario']);
 
-        // Solo lectura de horarios y asistencias
+        // Solo lectura de horarios
         Route::get('horarios', [HorarioController::class, 'index']);
         Route::get('horarios/{horario}', [HorarioController::class, 'show']);
-        Route::get('asistencias', [AsistenciaController::class, 'index']);
+
+        // CU16 - Registrar Asistencia (Docente)
+        Route::get('mis-clases-hoy', [AsistenciaController::class, 'misClasesHoy']);
         Route::post('asistencias', [AsistenciaController::class, 'store']);
+        Route::get('asistencias', [AsistenciaController::class, 'index']); // Solo ve sus propias asistencias
+        Route::patch('asistencias/{id}/observacion', [AsistenciaController::class, 'ajustarObservacion']);
 
         // CU9 - Consultar Disponibilidad de Aulas
         Route::get('aulas-disponibilidad', [AulasController::class, 'disponibilidad']);
