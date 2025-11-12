@@ -85,7 +85,7 @@ class HorarioController extends Controller
                 'id_aula' => 'required|exists:aulas,id',
                 'id_bloque' => 'required|exists:bloques_horarios,id',
                 'dias_semana' => 'required|array|min:1',
-                'dias_semana.*' => 'required|string|in:lunes,martes,miercoles,jueves,viernes,sabado',
+                'dias_semana.*' => 'required|string|in:Lunes,Martes,Miércoles,Jueves,Viernes,Sábado,lunes,martes,miércoles,jueves,viernes,sábado',
                 'activo' => 'boolean',
                 'descripcion' => 'string|nullable|max:500',
             ]);
@@ -181,7 +181,7 @@ class HorarioController extends Controller
                 'id_aula' => 'exists:aulas,id',
                 'id_bloque' => 'exists:bloques_horarios,id',
                 'dias_semana' => 'array|min:1',
-                'dias_semana.*' => 'string|in:lunes,martes,miercoles,jueves,viernes,sabado',
+                'dias_semana.*' => 'string|in:Lunes,Martes,Miércoles,Jueves,Viernes,Sábado,lunes,martes,miércoles,jueves,viernes,sábado',
                 'activo' => 'boolean',
                 'descripcion' => 'string|nullable|max:500',
             ]);

@@ -231,15 +231,6 @@ class HorarioDocenteController extends Controller
      */
     private function construirGrilla($horarios, $bloques, $diasSemana)
     {
-        // Mapeo de días: 1=Lunes, 2=Martes, ... 5=Viernes
-        $diasNumero = [
-            'Lunes' => 1,
-            'Martes' => 2,
-            'Miércoles' => 3,
-            'Jueves' => 4,
-            'Viernes' => 5,
-        ];
-
         // Construir estructura de grilla
         $grilla = [];
 
@@ -253,11 +244,11 @@ class HorarioDocenteController extends Controller
             ];
 
             foreach ($diasSemana as $dia) {
-                $numeroDay = $diasNumero[$dia];
-
                 // Buscar horario para este bloque y día
-                $horario = $horarios->first(function ($h) use ($numeroDay, $bloque) {
-                    return $h->dia_semana == $numeroDay && $h->id_bloque == $bloque->id;
+                $horario = $horarios->first(function ($h) use ($dia, $bloque) {
+                    // dias_semana es un JSON array, verificar si contiene el día
+                    $dias = is_string($h->dias_semana) ? json_decode($h->dias_semana, true) : $h->dias_semana;
+                    return is_array($dias) && in_array($dia, $dias) && $h->id_bloque == $bloque->id;
                 });
 
                 if ($horario) {
@@ -265,7 +256,7 @@ class HorarioDocenteController extends Controller
                         'id' => $horario->id,
                         'grupo' => $horario->grupo->id ?? null,
                         'materia' => $horario->grupo->materia->nombre ?? 'Sin materia',
-                        'aula' => $horario->aula->numero_aula ?? 'N/A',
+                        'aula' => $horario->aula->numero_aula ?? $horario->aula->nombre ?? 'N/A',
                         'paralelo' => $horario->grupo->paralelo ?? 'A',
                     ];
                 } else {

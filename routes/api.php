@@ -166,11 +166,26 @@ Route::middleware('auth:sanctum')->group(function () {
      * Puede: Consultar (lectura) horarios, aulas, disponibilidad, ver reportes, bitácora
      */
     Route::middleware('IsAutoridad')->group(function () {
-        // Solo lectura para autoridad
+        // Solo lectura para autoridad - Módulos académicos
         Route::get('horarios', [HorarioController::class, 'index']);
         Route::get('horarios/{horario}', [HorarioController::class, 'show']);
         Route::get('aulas', [AulasController::class, 'index']);
         Route::get('aulas/{aula}', [AulasController::class, 'show']);
+        Route::get('materias', [MateriaController::class, 'index']);
+        Route::get('materias/{materia}', [MateriaController::class, 'show']);
+        Route::get('docentes', [DocenteController::class, 'index']);
+        Route::get('docentes/{docente}', [DocenteController::class, 'show']);
+        Route::get('grupos', [GrupoController::class, 'index']);
+        Route::get('grupos/{grupo}', [GrupoController::class, 'show']);
+        Route::get('periodos', [PeriodoController::class, 'index']);
+        Route::get('periodos/{periodo}', [PeriodoController::class, 'show']);
+        Route::get('carreras', [CarreraController::class, 'index']);
+        Route::get('carreras/{carrera}', [CarreraController::class, 'show']);
+        Route::get('carreras-lista', [CarreraController::class, 'lista']);
+        Route::get('bloques-horarios', [BloqueHorarioController::class, 'index']);
+        Route::get('bloques-horarios/{bloqueHorario}', [BloqueHorarioController::class, 'show']);
+        
+        // Bitácora
         Route::get('bitacoras/seed/datos-prueba', [BitacoraController::class, 'seedDatos']);
         Route::get('bitacoras/estadisticas/resumen', [BitacoraController::class, 'estadisticas']);
         Route::get('bitacoras/tabla/{tabla}', [BitacoraController::class, 'porTabla']);

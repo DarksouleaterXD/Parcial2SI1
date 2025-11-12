@@ -43,6 +43,18 @@ class AuthController extends Controller
             // Crear token
             $token = $user->createToken('auth_token')->plainTextToken;
 
+            // Obtener permisos del usuario basados en sus roles RBAC
+            $permisos = [];
+            if ($user->roles) {
+                foreach ($user->roles as $rol) {
+                    foreach ($rol->permisos as $permiso) {
+                        $permisos[] = $permiso->nombre;
+                    }
+                }
+            }
+            // Eliminar duplicados
+            $permisos = array_unique($permisos);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Login exitoso',
@@ -50,7 +62,8 @@ class AuthController extends Controller
                     'user' => $user->load('persona'),
                     'token' => $token,
                     'rol' => $user->rol,
-                    'is_admin' => $user->rol === 'admin'
+                    'is_admin' => $user->rol === 'admin',
+                    'permisos' => array_values($permisos) // Permisos del usuario desde RBAC
                 ]
             ]);
 
