@@ -20,17 +20,14 @@ class Horario extends Model
         'id_aula',
         'id_docente',
         'id_bloque',
-        'hora_inicio',
-        'hora_fin',
-        'dia_semana',
+        'dias_semana', // Array de días: ['lunes', 'miercoles', 'viernes']
         'activo',
         'descripcion',
     ];
 
     protected $casts = [
         'activo' => 'boolean',
-        'hora_inicio' => 'datetime:H:i',
-        'hora_fin' => 'datetime:H:i',
+        'dias_semana' => 'array',
     ];
 
     /**

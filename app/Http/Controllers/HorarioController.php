@@ -25,14 +25,14 @@ class HorarioController extends Controller
             $diaSemana = $request->query('dia_semana');
             $idBloque = $request->query('id_bloque');
 
-            $query = Horario::with(['grupo', 'aula', 'docente', 'bloque']);
+            $query = Horario::with(['grupo.materia', 'grupo.periodo', 'aula', 'docente.persona', 'bloque']);
 
             // Filtro de búsqueda
             if ($search) {
-                $query->whereHas('grupo', function ($q) use ($search) {
-                    $q->where('id', 'LIKE', "%$search%");
+                $query->whereHas('grupo.materia', function ($q) use ($search) {
+                    $q->where('nombre', 'ILIKE', "%$search%");
                 })->orWhereHas('aula', function ($q) use ($search) {
-                    $q->where('nombre', 'LIKE', "%$search%");
+                    $q->where('nombre', 'ILIKE', "%$search%");
                 });
             }
 
@@ -44,14 +44,15 @@ class HorarioController extends Controller
                 $query->where('id_aula', $idAula);
             }
             if ($diaSemana) {
-                $query->where('dia_semana', $diaSemana);
+                // Buscar en el array JSON de días
+                $query->whereJsonContains('dias_semana', $diaSemana);
             }
             if ($idBloque) {
                 $query->where('id_bloque', $idBloque);
             }
 
-            $horarios = $query->orderBy('dia_semana', 'ASC')
-                ->orderBy('id_bloque', 'ASC')
+            $horarios = $query->orderBy('id_bloque', 'ASC')
+                ->orderBy('created_at', 'DESC')
                 ->paginate($perPage);
 
             return response()->json([
@@ -82,10 +83,9 @@ class HorarioController extends Controller
             $validator = Validator::make($request->all(), [
                 'id_grupo' => 'required|exists:grupos,id',
                 'id_aula' => 'required|exists:aulas,id',
-                'id_docente' => 'nullable|exists:docentes,id',
-                'hora_inicio' => 'required|date_format:H:i',
-                'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
-                'dia_semana' => 'required|string|in:lunes,martes,miércoles,jueves,viernes',
+                'id_bloque' => 'required|exists:bloques_horarios,id',
+                'dias_semana' => 'required|array|min:1',
+                'dias_semana.*' => 'required|string|in:lunes,martes,miercoles,jueves,viernes,sabado',
                 'activo' => 'boolean',
                 'descripcion' => 'string|nullable|max:500',
             ]);
@@ -98,38 +98,51 @@ class HorarioController extends Controller
                 ], 422);
             }
 
-            // Si no se proporciona id_docente, heredarlo del grupo
-            $idDocente = $request->id_docente;
-            if (!$idDocente) {
-                $grupo = \App\Models\Grupo::find($request->id_grupo);
-                $idDocente = $grupo->id_docente;
+            // Heredar docente del grupo
+            $grupo = \App\Models\Grupo::find($request->id_grupo);
+            $idDocente = $grupo->id_docente;
+
+            // Verificar conflictos de horario para cada día
+            foreach ($request->dias_semana as $dia) {
+                $conflicto = Horario::where('id_aula', $request->id_aula)
+                    ->where('id_bloque', $request->id_bloque)
+                    ->whereJsonContains('dias_semana', $dia)
+                    ->where('activo', true)
+                    ->first();
+
+                if ($conflicto) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "El aula ya está ocupada el día {$dia} en este bloque horario",
+                    ], 422);
+                }
             }
 
             $horario = Horario::create([
                 'id_grupo' => $request->id_grupo,
                 'id_aula' => $request->id_aula,
                 'id_docente' => $idDocente,
-                'hora_inicio' => $request->hora_inicio,
-                'hora_fin' => $request->hora_fin,
-                'dia_semana' => $request->dia_semana,
+                'id_bloque' => $request->id_bloque,
+                'dias_semana' => $request->dias_semana,
                 'activo' => $request->input('activo', true),
                 'descripcion' => $request->descripcion,
             ]);
 
             // Registrar en bitácora
+            $diasStr = implode(', ', $request->dias_semana);
             Bitacora::create([
                 'id_usuario' => Auth::id(),
                 'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'horarios',
                 'operacion' => 'crear',
                 'id_registro' => $horario->id,
-                'descripcion' => "Horario creado: Grupo {$request->id_grupo}, Aula {$request->id_aula}, {$request->dia_semana}",
+                'descripcion' => "Horario creado: Grupo {$request->id_grupo}, Aula {$request->id_aula}, Días: {$diasStr}",
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Horario creado exitosamente',
-                'data' => $horario->load(['grupo', 'aula', 'docente', 'bloque']),
+                'data' => $horario->load(['grupo.materia', 'grupo.periodo', 'aula', 'docente.persona', 'bloque']),
             ], 201);
         } catch (Exception $e) {
             return response()->json([
@@ -166,10 +179,9 @@ class HorarioController extends Controller
             $validator = Validator::make($request->all(), [
                 'id_grupo' => 'exists:grupos,id',
                 'id_aula' => 'exists:aulas,id',
-                'id_docente' => 'nullable|exists:docentes,id',
-                'hora_inicio' => 'date_format:H:i',
-                'hora_fin' => 'date_format:H:i|after:hora_inicio',
-                'dia_semana' => 'string|in:lunes,martes,miércoles,jueves,viernes',
+                'id_bloque' => 'exists:bloques_horarios,id',
+                'dias_semana' => 'array|min:1',
+                'dias_semana.*' => 'string|in:lunes,martes,miercoles,jueves,viernes,sabado',
                 'activo' => 'boolean',
                 'descripcion' => 'string|nullable|max:500',
             ]);
@@ -186,37 +198,58 @@ class HorarioController extends Controller
             $dataToUpdate = $request->only([
                 'id_grupo',
                 'id_aula',
-                'hora_inicio',
-                'hora_fin',
-                'dia_semana',
+                'id_bloque',
+                'dias_semana',
                 'activo',
                 'descripcion',
             ]);
 
-            // Si se cambió el grupo o no se proporciona id_docente, heredarlo del grupo
-            if ($request->has('id_grupo') && !$request->has('id_docente')) {
+            // Si se cambió el grupo, actualizar docente
+            if ($request->has('id_grupo')) {
                 $grupo = \App\Models\Grupo::find($request->id_grupo);
                 $dataToUpdate['id_docente'] = $grupo->id_docente;
-            } elseif ($request->has('id_docente')) {
-                $dataToUpdate['id_docente'] = $request->id_docente;
+            }
+
+            // Verificar conflictos de horario si se cambia aula, bloque o días
+            if ($request->has('dias_semana') || $request->has('id_aula') || $request->has('id_bloque')) {
+                $idAula = $request->id_aula ?? $horario->id_aula;
+                $idBloque = $request->id_bloque ?? $horario->id_bloque;
+                $diasSemana = $request->dias_semana ?? $horario->dias_semana;
+
+                foreach ($diasSemana as $dia) {
+                    $conflicto = Horario::where('id_aula', $idAula)
+                        ->where('id_bloque', $idBloque)
+                        ->whereJsonContains('dias_semana', $dia)
+                        ->where('id', '!=', $horario->id)
+                        ->where('activo', true)
+                        ->first();
+
+                    if ($conflicto) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "El aula ya está ocupada el día {$dia} en este bloque horario",
+                        ], 422);
+                    }
+                }
             }
 
             $horario->update($dataToUpdate);
 
             // Registrar en bitácora
+            $diasStr = implode(', ', $horario->dias_semana ?? []);
             Bitacora::create([
                 'id_usuario' => Auth::id(),
                 'ip_address' => IpHelper::getClientIp(),
                 'tabla' => 'horarios',
                 'operacion' => 'editar',
                 'id_registro' => $horario->id,
-                'descripcion' => "Horario actualizado: Grupo {$horario->id_grupo}, Aula {$horario->id_aula}, {$horario->dia_semana}",
+                'descripcion' => "Horario actualizado: Grupo {$horario->id_grupo}, Aula {$horario->id_aula}, Días: {$diasStr}",
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Horario actualizado exitosamente',
-                'data' => $horario->load(['grupo', 'aula', 'docente', 'bloque']),
+                'data' => $horario->load(['grupo.materia', 'grupo.periodo', 'aula', 'docente.persona', 'bloque']),
             ]);
         } catch (Exception $e) {
             return response()->json([

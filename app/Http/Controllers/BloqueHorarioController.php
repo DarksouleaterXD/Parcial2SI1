@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BloqueHorario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Exception;
 
 class BloqueHorarioController extends Controller
@@ -121,11 +122,16 @@ class BloqueHorarioController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'nombre' => 'string|max:100',
-                'hora_inicio' => 'date_format:H:i',
-                'hora_fin' => 'date_format:H:i|after:hora_inicio',
-                'numero_bloque' => 'integer|unique:bloques_horarios,numero_bloque,' . $bloqueHorario->id,
-                'activo' => 'boolean',
+                'nombre' => 'sometimes|string|max:100',
+                'hora_inicio' => 'sometimes|date_format:H:i',
+                'hora_fin' => 'sometimes|date_format:H:i|after:hora_inicio',
+                'numero_bloque' => [
+                    'sometimes',
+                    'integer',
+                    'min:1',
+                    Rule::unique('bloques_horarios', 'numero_bloque')->ignore($bloqueHorario->id)
+                ],
+                'activo' => 'sometimes|boolean',
             ]);
 
             if ($validator->fails()) {
