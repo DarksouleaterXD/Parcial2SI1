@@ -80,17 +80,23 @@ class HorarioController extends Controller
     public function store(Request $request)
     {
         try {
+            // Log para debugging
+            \Log::info('Datos recibidos en store:', $request->all());
+            \Log::info('dias_semana específicamente:', ['dias' => $request->dias_semana]);
+
+            // Validación básica
             $validator = Validator::make($request->all(), [
                 'id_grupo' => 'required|exists:grupos,id',
                 'id_aula' => 'required|exists:aulas,id',
                 'id_bloque' => 'required|exists:bloques_horarios,id',
                 'dias_semana' => 'required|array|min:1',
-                'dias_semana.*' => 'required|string|in:Lunes,Martes,Miércoles,Jueves,Viernes,Sábado,lunes,martes,miércoles,jueves,viernes,sábado',
+                'dias_semana.*' => 'required|string',
                 'activo' => 'boolean',
                 'descripcion' => 'string|nullable|max:500',
             ]);
 
             if ($validator->fails()) {
+                \Log::error('Validación fallida:', $validator->errors()->toArray());
                 return response()->json([
                     'success' => false,
                     'message' => 'Validación fallida',
@@ -98,12 +104,51 @@ class HorarioController extends Controller
                 ], 422);
             }
 
+            // Normalizar días de la semana (convertir a formato estándar)
+            $diasNormalizados = array_map(function($dia) {
+                $mapa = [
+                    'lunes' => 'Lunes',
+                    'martes' => 'Martes',
+                    'miercoles' => 'Miércoles',
+                    'miércoles' => 'Miércoles',
+                    'jueves' => 'Jueves',
+                    'viernes' => 'Viernes',
+                    'sabado' => 'Sábado',
+                    'sábado' => 'Sábado',
+                    'Lunes' => 'Lunes',
+                    'Martes' => 'Martes',
+                    'Miércoles' => 'Miércoles',
+                    'Miercoles' => 'Miércoles',
+                    'Jueves' => 'Jueves',
+                    'Viernes' => 'Viernes',
+                    'Sábado' => 'Sábado',
+                    'Sabado' => 'Sábado',
+                ];
+
+                $diaNormalizado = $mapa[trim($dia)] ?? null;
+
+                if (!$diaNormalizado) {
+                    \Log::error("Día no reconocido: '{$dia}'");
+                }
+
+                return $diaNormalizado;
+            }, $request->dias_semana);
+
+            // Validar que todos los días fueron normalizados correctamente
+            if (in_array(null, $diasNormalizados, true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Uno o más días de la semana no son válidos',
+                    'errors' => ['dias_semana' => ['Días permitidos: lunes, martes, miercoles, jueves, viernes, sabado']],
+                ], 422);
+            }
+
             // Heredar docente del grupo
             $grupo = \App\Models\Grupo::find($request->id_grupo);
             $idDocente = $grupo->id_docente;
 
-            // Verificar conflictos de horario para cada día
-            foreach ($request->dias_semana as $dia) {
+            // Verificar conflictos de horario para cada día (usando días normalizados)
+            foreach ($diasNormalizados as $dia) {
                 $conflicto = Horario::where('id_aula', $request->id_aula)
                     ->where('id_bloque', $request->id_bloque)
                     ->whereJsonContains('dias_semana', $dia)
@@ -123,7 +168,7 @@ class HorarioController extends Controller
                 'id_aula' => $request->id_aula,
                 'id_docente' => $idDocente,
                 'id_bloque' => $request->id_bloque,
-                'dias_semana' => $request->dias_semana,
+                'dias_semana' => $diasNormalizados, // Usar días normalizados
                 'activo' => $request->input('activo', true),
                 'descripcion' => $request->descripcion,
             ]);

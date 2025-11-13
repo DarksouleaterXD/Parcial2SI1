@@ -22,6 +22,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RolPermisoController;
 use App\Http\Controllers\ImportacionUsuariosController;
 use App\Http\Controllers\SesionController;
+use App\Http\Controllers\ReporteController;
 
 /**
  * RUTAS PÚBLICAS (sin autenticación)
@@ -88,6 +89,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Gestión completa de usuarios (CRUD)
         Route::apiResource('usuarios', UserController::class);
+
+        // CU11 - Generar/Exportar Reportes (solo admin)
+        Route::get('reportes/horarios-semanales', [ReporteController::class, 'horariosSemanales']);
+        Route::get('reportes/horarios-semanales/pdf', [ReporteController::class, 'horariosSemanalesPDF']);
+        Route::get('reportes/horarios-semanales/excel', [ReporteController::class, 'horariosSemanalesExcel']);
+        Route::get('reportes/aulas-disponibles', [ReporteController::class, 'aulasDisponibles']);
+        Route::get('reportes/aulas-disponibles/pdf', [ReporteController::class, 'aulasDisponiblesPDF']);
+        Route::get('reportes/aulas-disponibles/excel', [ReporteController::class, 'aulasDisponiblesExcel']);
     });
 
     /**
@@ -184,7 +193,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('carreras-lista', [CarreraController::class, 'lista']);
         Route::get('bloques-horarios', [BloqueHorarioController::class, 'index']);
         Route::get('bloques-horarios/{bloqueHorario}', [BloqueHorarioController::class, 'show']);
-        
+
         // Bitácora
         Route::get('bitacoras/seed/datos-prueba', [BitacoraController::class, 'seedDatos']);
         Route::get('bitacoras/estadisticas/resumen', [BitacoraController::class, 'estadisticas']);
