@@ -149,6 +149,11 @@ class UserController extends Controller
                 'id_persona' => $personaId,
             ]);
 
+            // Actualizar persona con id_usuario si existe
+            if ($personaId) {
+                Persona::where('id', $personaId)->update(['id_usuario' => $usuario->id]);
+            }
+
             // Si el rol es docente, crear registro en tabla docentes
             if ($validated['rol'] === 'docente') {
                 // Si no se creó persona, crearla ahora (es requerida para docentes)

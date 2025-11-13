@@ -46,8 +46,19 @@ class UsuariosImport implements ToCollection, WithHeadingRow
             // Si no es solo validación y la fila es válida, crear el usuario
             if (!$this->soloValidar && $resultado['valido']) {
                 try {
-                    $this->crearUsuario($resultado['datos']);
+                    \Log::info('Intentando crear usuario', [
+                        'fila' => $filaNumero,
+                        'datos' => $resultado['datos']
+                    ]);
+                    
+                    $passwordGenerado = $this->crearUsuario($resultado['datos']);
                     $this->resultados[count($this->resultados) - 1]['creado'] = true;
+                    $this->resultados[count($this->resultados) - 1]['password_generado'] = $passwordGenerado;
+                    
+                    \Log::info('Usuario creado exitosamente', [
+                        'fila' => $filaNumero,
+                        'email' => $resultado['datos']['email']
+                    ]);
                 } catch (\Exception $e) {
                     $this->resultados[count($this->resultados) - 1]['valido'] = false;
                     $this->resultados[count($this->resultados) - 1]['errores'][] = 'Error al crear: ' . $e->getMessage();
@@ -55,9 +66,17 @@ class UsuariosImport implements ToCollection, WithHeadingRow
                     \Log::error('Error al crear usuario:', [
                         'fila' => $filaNumero,
                         'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
                         'datos' => $resultado['datos']
                     ]);
                 }
+            } else {
+                \Log::info('Saltando creación de usuario', [
+                    'fila' => $filaNumero,
+                    'soloValidar' => $this->soloValidar,
+                    'valido' => $resultado['valido'],
+                    'errores' => $resultado['errores'] ?? []
+                ]);
             }
 
             $filaNumero++;
@@ -67,7 +86,7 @@ class UsuariosImport implements ToCollection, WithHeadingRow
     /**
      * Crea un usuario y su persona asociada
      */
-    protected function crearUsuario($datos)
+    protected function crearUsuario($datos): ?string
     {
         DB::beginTransaction();
         try {
@@ -88,10 +107,7 @@ class UsuariosImport implements ToCollection, WithHeadingRow
                     'ci' => $datos['ci'],
                     'correo' => $datos['email'],
                     'nombre' => $datos['nombre'],
-                    'apellido_paterno' => $datos['apellido_paterno'],
-                    'apellido_materno' => $datos['apellido_materno'] ?? null,
-                    'telefono' => $datos['telefono'] ?? null,
-                    'fecha_nacimiento' => $datos['fecha_nacimiento'] ?? null,
+                    'apellido' => $datos['apellido_paterno'] . ($datos['apellido_materno'] ? ' ' . $datos['apellido_materno'] : ''),
                 ]);
             }
 
@@ -103,6 +119,19 @@ class UsuariosImport implements ToCollection, WithHeadingRow
                 'rol' => $datos['rol'],
                 'id_persona' => $persona ? $persona->id : null,
             ]);
+
+            // Actualizar persona con id_usuario
+            if ($persona) {
+                $persona->update(['id_usuario' => $usuario->id]);
+            }
+
+            // Si el rol es docente, crear registro en tabla docentes
+            if ($datos['rol'] === 'docente' && $persona) {
+                \App\Models\Docente::create([
+                    'id_persona' => $persona->id,
+                    'activo' => true,
+                ]);
+            }
 
             // Asignar rol RBAC
             if ($this->rolRbacDefecto) {
@@ -141,7 +170,7 @@ class UsuariosImport implements ToCollection, WithHeadingRow
             }
 
             DB::commit();
-            return $usuario;
+            return $password; // Retornar el password generado
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
