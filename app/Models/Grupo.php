@@ -41,6 +41,23 @@ class Grupo extends Model
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = ['nombre_completo'];
+
+    /**
+     * Obtener el nombre completo del grupo (materia + paralelo)
+     */
+    public function getNombreCompletoAttribute(): string
+    {
+        $materia = $this->materia->nombre ?? 'Materia';
+        $codigo = $this->materia->codigo ?? '';
+        return trim("{$codigo} - {$materia} ({$this->paralelo})");
+    }
+
+    /**
      * Relación: Un grupo pertenece a una Materia
      */
     public function materia(): BelongsTo

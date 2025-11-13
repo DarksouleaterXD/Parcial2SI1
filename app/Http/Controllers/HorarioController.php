@@ -147,19 +147,38 @@ class HorarioController extends Controller
             $grupo = \App\Models\Grupo::find($request->id_grupo);
             $idDocente = $grupo->id_docente;
 
-            // Verificar conflictos de horario para cada día (usando días normalizados)
+            // Verificar conflictos de horario para cada día
             foreach ($diasNormalizados as $dia) {
-                $conflicto = Horario::where('id_aula', $request->id_aula)
+                // 1. Verificar conflicto de aula (mismo aula, mismo bloque, mismo día)
+                $conflictoAula = Horario::where('id_aula', $request->id_aula)
                     ->where('id_bloque', $request->id_bloque)
                     ->whereJsonContains('dias_semana', $dia)
                     ->where('activo', true)
                     ->first();
 
-                if ($conflicto) {
+                if ($conflictoAula) {
+                    $grupoConflicto = $conflictoAula->grupo;
                     return response()->json([
                         'success' => false,
-                        'message' => "El aula ya está ocupada el día {$dia} en este bloque horario",
+                        'message' => "Conflicto de aula: El aula ya está ocupada el día {$dia} en este bloque por el grupo {$grupoConflicto->codigo} - {$grupoConflicto->paralelo}",
                     ], 422);
+                }
+
+                // 2. Verificar conflicto de docente (mismo docente, mismo bloque, mismo día)
+                if ($idDocente) {
+                    $conflictoDocente = Horario::where('id_docente', $idDocente)
+                        ->where('id_bloque', $request->id_bloque)
+                        ->whereJsonContains('dias_semana', $dia)
+                        ->where('activo', true)
+                        ->first();
+
+                    if ($conflictoDocente) {
+                        $grupoConflicto = $conflictoDocente->grupo;
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Conflicto de docente: El docente ya tiene asignado el grupo {$grupoConflicto->codigo} - {$grupoConflicto->paralelo} el día {$dia} en este bloque",
+                        ], 422);
+                    }
                 }
             }
 
@@ -222,9 +241,8 @@ class HorarioController extends Controller
     {
         try {
             \Log::info('UPDATE HORARIO - Datos recibidos:', $request->all());
-            
+
             $validator = Validator::make($request->all(), [
-                'id_grupo' => 'exists:grupos,id',
                 'id_aula' => 'exists:aulas,id',
                 'id_bloque' => 'exists:bloques_horarios,id',
                 'dias_semana' => 'array|min:1',
@@ -245,9 +263,8 @@ class HorarioController extends Controller
                 ], 422);
             }
 
-            // Preparar datos para actualizar
+            // Preparar datos para actualizar (SIN id_grupo - no se permite cambiar)
             $dataToUpdate = $request->only([
-                'id_grupo',
                 'id_aula',
                 'id_bloque',
                 'activo',
@@ -283,31 +300,46 @@ class HorarioController extends Controller
                 $dataToUpdate['dias_semana'] = $diasNormalizados;
             }
 
-            // Si se cambió el grupo, actualizar docente
-            if ($request->has('id_grupo')) {
-                $grupo = \App\Models\Grupo::find($request->id_grupo);
-                $dataToUpdate['id_docente'] = $grupo->id_docente;
-            }
-
             // Verificar conflictos de horario si se cambia aula, bloque o días
             if ($request->has('dias_semana') || $request->has('id_aula') || $request->has('id_bloque')) {
                 $idAula = $request->id_aula ?? $horario->id_aula;
                 $idBloque = $request->id_bloque ?? $horario->id_bloque;
                 $diasSemana = $dataToUpdate['dias_semana'] ?? $horario->dias_semana;
+                $idDocente = $horario->id_docente;
 
                 foreach ($diasSemana as $dia) {
-                    $conflicto = Horario::where('id_aula', $idAula)
+                    // 1. Verificar conflicto de aula (mismo aula, mismo bloque, mismo día)
+                    $conflictoAula = Horario::where('id_aula', $idAula)
                         ->where('id_bloque', $idBloque)
                         ->whereJsonContains('dias_semana', $dia)
                         ->where('id', '!=', $horario->id)
                         ->where('activo', true)
                         ->first();
 
-                    if ($conflicto) {
+                    if ($conflictoAula) {
+                        $grupoConflicto = $conflictoAula->grupo;
                         return response()->json([
                             'success' => false,
-                            'message' => "El aula ya está ocupada el día {$dia} en este bloque horario",
+                            'message' => "Conflicto de aula: El aula {$idAula} ya está ocupada el día {$dia} en este bloque por el grupo {$grupoConflicto->codigo} - {$grupoConflicto->paralelo}",
                         ], 422);
+                    }
+
+                    // 2. Verificar conflicto de docente (mismo docente, mismo bloque, mismo día)
+                    if ($idDocente) {
+                        $conflictoDocente = Horario::where('id_docente', $idDocente)
+                            ->where('id_bloque', $idBloque)
+                            ->whereJsonContains('dias_semana', $dia)
+                            ->where('id', '!=', $horario->id)
+                            ->where('activo', true)
+                            ->first();
+
+                        if ($conflictoDocente) {
+                            $grupoConflicto = $conflictoDocente->grupo;
+                            return response()->json([
+                                'success' => false,
+                                'message' => "Conflicto de docente: El docente ya tiene asignado el grupo {$grupoConflicto->codigo} - {$grupoConflicto->paralelo} el día {$dia} en este bloque",
+                            ], 422);
+                        }
                     }
                 }
             }
@@ -331,6 +363,11 @@ class HorarioController extends Controller
                 'data' => $horario->load(['grupo.materia', 'grupo.periodo', 'aula', 'docente.persona', 'bloque']),
             ]);
         } catch (Exception $e) {
+            \Log::error('Error al actualizar horario:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar horario: ' . $e->getMessage(),

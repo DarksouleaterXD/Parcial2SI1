@@ -31,8 +31,8 @@ class ReporteController extends Controller
 
             $query = Horario::with([
                 'bloque',
-                'grupo.materia',
-                'grupo.carrera',
+                'grupo.materia.carrera',
+                'grupo.periodo',
                 'aula',
                 'docente.persona'
             ])
@@ -57,8 +57,8 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
-                'accion' => 'CONSULTA_REPORTE',
-                'tabla_afectada' => 'horarios',
+                'tabla' => 'horarios',
+                'operacion' => 'exportacion',
                 'descripcion' => "Consultó reporte de horarios semanales (Periodo: $periodo_id)"
             ]);
 
@@ -68,6 +68,11 @@ class ReporteController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error en horariosSemanales:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al generar reporte',
@@ -88,8 +93,7 @@ class ReporteController extends Controller
 
             $query = Horario::with([
                 'bloque',
-                'grupo.materia',
-                'grupo.carrera',
+                'grupo.materia.carrera',
                 'grupo.periodo',
                 'aula',
                 'docente.persona'
@@ -124,14 +128,19 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
-                'accion' => 'EXPORTAR_PDF',
-                'tabla_afectada' => 'horarios',
+                'tabla' => 'horarios',
+                'operacion' => 'exportacion',
                 'descripcion' => "Exportó reporte de horarios semanales a PDF"
             ]);
 
             return $pdf->download('horarios_semanales_' . time() . '.pdf');
 
         } catch (\Exception $e) {
+            \Log::error('Error en horariosSemanalesPDF:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al exportar PDF',
@@ -152,7 +161,8 @@ class ReporteController extends Controller
 
             $query = Horario::with([
                 'bloque',
-                'grupo.materia',
+                'grupo.materia.carrera',
+                'grupo.periodo',
                 'aula',
                 'docente.persona'
             ])
@@ -199,8 +209,8 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
-                'accion' => 'EXPORTAR_EXCEL',
-                'tabla_afectada' => 'horarios',
+                'tabla' => 'horarios',
+                'operacion' => 'exportacion',
                 'descripcion' => "Exportó reporte de horarios semanales a Excel/CSV"
             ]);
 
@@ -263,8 +273,8 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
-                'accion' => 'CONSULTA_REPORTE',
-                'tabla_afectada' => 'aulas',
+                'tabla' => 'aulas',
+                'operacion' => 'exportacion',
                 'descripcion' => "Consultó reporte de aulas disponibles" . ($dia ? " (Día: $dia)" : "")
             ]);
 
@@ -334,8 +344,8 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
-                'accion' => 'EXPORTAR_PDF',
-                'tabla_afectada' => 'aulas',
+                'tabla' => 'aulas',
+                'operacion' => 'exportacion',
                 'descripcion' => "Exportó reporte de aulas disponibles a PDF"
             ]);
 
@@ -397,8 +407,8 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
-                'accion' => 'EXPORTAR_EXCEL',
-                'tabla_afectada' => 'aulas',
+                'tabla' => 'aulas',
+                'operacion' => 'exportacion',
                 'descripcion' => "Exportó reporte de aulas disponibles a Excel/CSV"
             ]);
 

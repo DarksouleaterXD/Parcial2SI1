@@ -50,11 +50,11 @@ class UsuariosImport implements ToCollection, WithHeadingRow
                         'fila' => $filaNumero,
                         'datos' => $resultado['datos']
                     ]);
-                    
+
                     $passwordGenerado = $this->crearUsuario($resultado['datos']);
                     $this->resultados[count($this->resultados) - 1]['creado'] = true;
                     $this->resultados[count($this->resultados) - 1]['password_generado'] = $passwordGenerado;
-                    
+
                     \Log::info('Usuario creado exitosamente', [
                         'fila' => $filaNumero,
                         'email' => $resultado['datos']['email']
