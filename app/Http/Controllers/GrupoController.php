@@ -80,7 +80,7 @@ class GrupoController extends Controller
                 'id_docente' => ['nullable', 'integer', 'exists:docentes,id'],
                 'paralelo' => ['required', 'string', 'max:2', 'regex:/^[A-Z]{1,2}$/'],
                 'capacidad' => ['required', 'integer', 'min:1', 'max:500'],
-                'codigo' => ['nullable', 'string', 'max:10', 'unique:grupos,codigo'],
+                'codigo' => ['nullable', 'string', 'max:50', 'unique:grupos,codigo'],
             ]);
 
             // Validar combinación única: materia + periodo + paralelo
@@ -178,14 +178,22 @@ class GrupoController extends Controller
             \Log::info('UPDATE GRUPO - Datos recibidos:', $request->all());
 
             // Validar datos entrada
-            $validated = $request->validate([
-                'id_materia' => ['sometimes', 'integer', 'exists:materias,id'],
-                'id_periodo' => ['sometimes', 'integer', 'exists:periodos,id'],
-                'id_docente' => ['sometimes', 'nullable', 'integer', 'exists:docentes,id'],
-                'paralelo' => ['sometimes', 'string', 'max:2', 'regex:/^[A-Z]{1,2}$/'],
-                'capacidad' => ['sometimes', 'integer', 'min:1', 'max:500'],
-                'codigo' => ['sometimes', 'nullable', 'string', 'max:10', 'unique:grupos,codigo,' . $grupo->id],
-            ]);
+            try {
+                $validated = $request->validate([
+                    'id_materia' => ['sometimes', 'integer', 'exists:materias,id'],
+                    'id_periodo' => ['sometimes', 'integer', 'exists:periodos,id'],
+                    'id_docente' => ['sometimes', 'nullable', 'integer', 'exists:docentes,id'],
+                    'paralelo' => ['sometimes', 'string', 'max:2', 'regex:/^[A-Z]{1,2}$/'],
+                    'capacidad' => ['sometimes', 'integer', 'min:1', 'max:500'],
+                    'codigo' => ['sometimes', 'nullable', 'string', 'max:50', 'unique:grupos,codigo,' . $grupo->id],
+                ]);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                \Log::error('UPDATE GRUPO - Error de validación:', [
+                    'errors' => $e->errors(),
+                    'datos' => $request->all()
+                ]);
+                throw $e;
+            }
 
             // Si se cambió materia, periodo o paralelo, validar unicidad
             if (isset($validated['id_materia']) || isset($validated['id_periodo']) || isset($validated['paralelo'])) {

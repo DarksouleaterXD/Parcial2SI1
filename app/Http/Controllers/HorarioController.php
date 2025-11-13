@@ -221,17 +221,23 @@ class HorarioController extends Controller
     public function update(Request $request, Horario $horario)
     {
         try {
+            \Log::info('UPDATE HORARIO - Datos recibidos:', $request->all());
+            
             $validator = Validator::make($request->all(), [
                 'id_grupo' => 'exists:grupos,id',
                 'id_aula' => 'exists:aulas,id',
                 'id_bloque' => 'exists:bloques_horarios,id',
                 'dias_semana' => 'array|min:1',
-                'dias_semana.*' => 'string|in:Lunes,Martes,Miércoles,Jueves,Viernes,Sábado,lunes,martes,miércoles,jueves,viernes,sábado',
+                'dias_semana.*' => 'required|string',
                 'activo' => 'boolean',
                 'descripcion' => 'string|nullable|max:500',
             ]);
 
             if ($validator->fails()) {
+                \Log::error('UPDATE HORARIO - Error de validación:', [
+                    'errors' => $validator->errors(),
+                    'datos' => $request->all()
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Validación fallida',
@@ -244,10 +250,38 @@ class HorarioController extends Controller
                 'id_grupo',
                 'id_aula',
                 'id_bloque',
-                'dias_semana',
                 'activo',
                 'descripcion',
             ]);
+
+            // Normalizar días de la semana si se envían
+            if ($request->has('dias_semana')) {
+                $diasNormalizados = array_map(function($dia) {
+                    $mapa = [
+                        'lunes' => 'Lunes',
+                        'martes' => 'Martes',
+                        'miercoles' => 'Miércoles',
+                        'miércoles' => 'Miércoles',
+                        'jueves' => 'Jueves',
+                        'viernes' => 'Viernes',
+                        'sabado' => 'Sábado',
+                        'sábado' => 'Sábado',
+                        'domingo' => 'Domingo',
+                        'Lunes' => 'Lunes',
+                        'Martes' => 'Martes',
+                        'Miércoles' => 'Miércoles',
+                        'Miercoles' => 'Miércoles',
+                        'Jueves' => 'Jueves',
+                        'Viernes' => 'Viernes',
+                        'Sábado' => 'Sábado',
+                        'Sabado' => 'Sábado',
+                        'Domingo' => 'Domingo',
+                    ];
+                    return $mapa[trim($dia)] ?? $dia;
+                }, $request->dias_semana);
+
+                $dataToUpdate['dias_semana'] = $diasNormalizados;
+            }
 
             // Si se cambió el grupo, actualizar docente
             if ($request->has('id_grupo')) {
@@ -259,7 +293,7 @@ class HorarioController extends Controller
             if ($request->has('dias_semana') || $request->has('id_aula') || $request->has('id_bloque')) {
                 $idAula = $request->id_aula ?? $horario->id_aula;
                 $idBloque = $request->id_bloque ?? $horario->id_bloque;
-                $diasSemana = $request->dias_semana ?? $horario->dias_semana;
+                $diasSemana = $dataToUpdate['dias_semana'] ?? $horario->dias_semana;
 
                 foreach ($diasSemana as $dia) {
                     $conflicto = Horario::where('id_aula', $idAula)
