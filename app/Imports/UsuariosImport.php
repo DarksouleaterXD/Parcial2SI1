@@ -4,9 +4,11 @@ namespace App\Imports;
 
 use App\Models\User;
 use App\Models\Persona;
+use App\Models\Rol;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
@@ -17,11 +19,15 @@ class UsuariosImport implements ToCollection, WithHeadingRow
     protected $emailsEnArchivo = [];
     protected $soloValidar = true;
     protected $validarDuplicadosBD = true;
+    protected $generarPasswords = true;
+    protected $rolRbacDefecto = null;
 
-    public function __construct($soloValidar = true, $validarDuplicadosBD = true)
+    public function __construct($soloValidar = true, $validarDuplicadosBD = true, $generarPasswords = true, $rolRbacDefecto = null)
     {
         $this->soloValidar = $soloValidar;
         $this->validarDuplicadosBD = $validarDuplicadosBD;
+        $this->generarPasswords = $generarPasswords;
+        $this->rolRbacDefecto = $rolRbacDefecto;
     }
 
     /**
@@ -36,7 +42,109 @@ class UsuariosImport implements ToCollection, WithHeadingRow
         foreach ($rows as $row) {
             $resultado = $this->procesarFila($row, $filaNumero);
             $this->resultados[] = $resultado;
+
+            // Si no es solo validación y la fila es válida, crear el usuario
+            if (!$this->soloValidar && $resultado['valido']) {
+                try {
+                    $this->crearUsuario($resultado['datos']);
+                    $this->resultados[count($this->resultados) - 1]['creado'] = true;
+                } catch (\Exception $e) {
+                    $this->resultados[count($this->resultados) - 1]['valido'] = false;
+                    $this->resultados[count($this->resultados) - 1]['errores'][] = 'Error al crear: ' . $e->getMessage();
+                    $this->resultados[count($this->resultados) - 1]['creado'] = false;
+                    \Log::error('Error al crear usuario:', [
+                        'fila' => $filaNumero,
+                        'error' => $e->getMessage(),
+                        'datos' => $resultado['datos']
+                    ]);
+                }
+            }
+
             $filaNumero++;
+        }
+    }
+
+    /**
+     * Crea un usuario y su persona asociada
+     */
+    protected function crearUsuario($datos)
+    {
+        DB::beginTransaction();
+        try {
+            // Usar password del Excel o generar uno
+            $password = null;
+            if (!empty($datos['password'])) {
+                $password = $datos['password'];
+            } elseif ($this->generarPasswords) {
+                $password = Str::random(12);
+            } else {
+                $password = 'temporal123';
+            }
+
+            // Crear Persona si tiene CI
+            $persona = null;
+            if (!empty($datos['ci'])) {
+                $persona = Persona::create([
+                    'ci' => $datos['ci'],
+                    'correo' => $datos['email'],
+                    'nombre' => $datos['nombre'],
+                    'apellido_paterno' => $datos['apellido_paterno'],
+                    'apellido_materno' => $datos['apellido_materno'] ?? null,
+                    'telefono' => $datos['telefono'] ?? null,
+                    'fecha_nacimiento' => $datos['fecha_nacimiento'] ?? null,
+                ]);
+            }
+
+            // Crear Usuario
+            $usuario = User::create([
+                'nombre' => $datos['nombre'] . ' ' . $datos['apellido_paterno'] . ($datos['apellido_materno'] ? ' ' . $datos['apellido_materno'] : ''),
+                'email' => $datos['email'],
+                'password' => Hash::make($password),
+                'rol' => $datos['rol'],
+                'id_persona' => $persona ? $persona->id : null,
+            ]);
+
+            // Asignar rol RBAC
+            if ($this->rolRbacDefecto) {
+                DB::table('usuario_rol')->insert([
+                    'id_usuario' => $usuario->id,
+                    'id_rol' => $this->rolRbacDefecto,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                // Asignar rol RBAC según el rol del sistema
+                $rolRbac = null;
+                switch ($datos['rol']) {
+                    case 'admin':
+                        $rolRbac = Rol::where('nombre', 'Administrador')->first();
+                        break;
+                    case 'coordinador':
+                        $rolRbac = Rol::where('nombre', 'Coordinador')->first();
+                        break;
+                    case 'docente':
+                        $rolRbac = Rol::where('nombre', 'Docente')->first();
+                        break;
+                    case 'autoridad':
+                        $rolRbac = Rol::where('nombre', 'Autoridad')->first();
+                        break;
+                }
+
+                if ($rolRbac) {
+                    DB::table('usuario_rol')->insert([
+                        'id_usuario' => $usuario->id,
+                        'id_rol' => $rolRbac->id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            DB::commit();
+            return $usuario;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
     }
 
