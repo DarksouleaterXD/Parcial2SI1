@@ -34,6 +34,18 @@ class Persona extends Model
         'updated_at' => 'datetime',
     ];
 
+    protected $appends = [
+        'nombre_completo',
+    ];
+
+    /**
+     * Accessor para obtener el nombre completo
+     */
+    public function getNombreCompletoAttribute(): string
+    {
+        return trim("{$this->nombre} {$this->apellido}");
+    }
+
     /**
      * Relación con Usuario
      */

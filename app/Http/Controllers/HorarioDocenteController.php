@@ -248,7 +248,31 @@ class HorarioDocenteController extends Controller
                 $horario = $horarios->first(function ($h) use ($dia, $bloque) {
                     // dias_semana es un JSON array, verificar si contiene el día
                     $dias = is_string($h->dias_semana) ? json_decode($h->dias_semana, true) : $h->dias_semana;
-                    return is_array($dias) && in_array($dia, $dias) && $h->id_bloque == $bloque->id;
+
+                    if (!is_array($dias) || $h->id_bloque != $bloque->id) {
+                        return false;
+                    }
+
+                    // Normalizar días para comparación (manejar diferentes formatos)
+                    $diasNormalizados = array_map(function($d) {
+                        $d = strtolower(trim($d));
+                        // Mapear abreviaturas a nombres completos
+                        $mapa = [
+                            'lun' => 'lunes',
+                            'mar' => 'martes',
+                            'mie' => 'miércoles',
+                            'mié' => 'miércoles',
+                            'jue' => 'jueves',
+                            'vie' => 'viernes',
+                            'sab' => 'sábado',
+                            'sáb' => 'sábado',
+                            'dom' => 'domingo',
+                        ];
+                        return $mapa[$d] ?? $d;
+                    }, $dias);
+
+                    $diaComparar = strtolower($dia);
+                    return in_array($diaComparar, $diasNormalizados);
                 });
 
                 if ($horario) {

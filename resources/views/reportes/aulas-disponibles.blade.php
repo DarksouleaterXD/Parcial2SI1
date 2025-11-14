@@ -10,31 +10,35 @@
             padding: 0;
             box-sizing: border-box;
         }
+        @page {
+            size: A4 landscape;
+            margin: 15mm;
+        }
         body {
             font-family: 'Arial', sans-serif;
-            font-size: 10px;
-            line-height: 1.4;
+            font-size: 11px;
+            line-height: 1.5;
             color: #333;
         }
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #10b981;
         }
         .header h1 {
             color: #1f2937;
-            font-size: 20px;
+            font-size: 22px;
             margin-bottom: 5px;
         }
         .header h2 {
             color: #6b7280;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: normal;
         }
         .meta-info {
-            margin-bottom: 15px;
-            font-size: 10px;
+            margin-bottom: 12px;
+            font-size: 11px;
             color: #6b7280;
         }
         table {
@@ -46,18 +50,18 @@
             background-color: #f3f4f6;
         }
         th {
-            padding: 6px 4px;
+            padding: 8px 5px;
             text-align: center;
             font-weight: 600;
             color: #1f2937;
             border-bottom: 2px solid #10b981;
-            font-size: 9px;
+            font-size: 10px;
         }
         td {
-            padding: 5px 4px;
+            padding: 7px 5px;
             border-bottom: 1px solid #e5e7eb;
             text-align: center;
-            font-size: 9px;
+            font-size: 10px;
         }
         tbody tr:nth-child(even) {
             background-color: #f9fafb;
@@ -73,10 +77,10 @@
             font-weight: 600;
         }
         .footer {
-            margin-top: 30px;
-            padding-top: 10px;
+            margin-top: 20px;
+            padding-top: 8px;
             border-top: 1px solid #e5e7eb;
-            font-size: 9px;
+            font-size: 10px;
             color: #9ca3af;
             text-align: center;
         }
@@ -108,9 +112,9 @@
                     <th>Aula</th>
                     <th>Capacidad</th>
                     @foreach($bloques as $bloque)
-                        <th style="font-size: 8px;">
+                        <th style="font-size: 9px;">
                             {{ $bloque->nombre }}<br>
-                            <span style="font-weight: normal;">{{ $bloque->hora_inicio }}-{{ $bloque->hora_fin }}</span>
+                            <span style="font-weight: normal; font-size: 8px;">{{ $bloque->hora_inicio }}-{{ $bloque->hora_fin }}</span>
                         </th>
                     @endforeach
                 </tr>
@@ -130,10 +134,10 @@
             </tbody>
         </table>
 
-        <div style="margin-top: 15px; font-size: 9px;">
+        <div style="margin-top: 12px; font-size: 11px;">
             <strong>Leyenda:</strong>
-            <span style="background-color: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 3px; margin-left: 10px;">LIBRE</span>
-            <span style="background-color: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 3px; margin-left: 5px;">OCUPADA</span>
+            <span style="background-color: #d1fae5; color: #065f46; padding: 3px 10px; border-radius: 3px; margin-left: 10px; font-size: 10px;">LIBRE</span>
+            <span style="background-color: #fee2e2; color: #991b1b; padding: 3px 10px; border-radius: 3px; margin-left: 5px; font-size: 10px;">OCUPADA</span>
         </div>
     @else
         <div style="text-align: center; padding: 40px; color: #9ca3af;">

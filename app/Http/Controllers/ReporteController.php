@@ -57,6 +57,7 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
+                'ip_address' => \App\Helpers\IpHelper::getClientIp(),
                 'tabla' => 'horarios',
                 'operacion' => 'exportacion',
                 'descripcion' => "Consultó reporte de horarios semanales (Periodo: $periodo_id)"
@@ -128,6 +129,7 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
+                'ip_address' => \App\Helpers\IpHelper::getClientIp(),
                 'tabla' => 'horarios',
                 'operacion' => 'exportacion',
                 'descripcion' => "Exportó reporte de horarios semanales a PDF"
@@ -209,6 +211,7 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
+                'ip_address' => \App\Helpers\IpHelper::getClientIp(),
                 'tabla' => 'horarios',
                 'operacion' => 'exportacion',
                 'descripcion' => "Exportó reporte de horarios semanales a Excel/CSV"
@@ -234,30 +237,53 @@ class ReporteController extends Controller
     {
         try {
             $dia = $request->query('dia'); // Opcional: Lunes, Martes, etc.
+            $aula_id = $request->query('aula_id'); // Opcional: Filtrar por aula específica
+            $bloque_id = $request->query('bloque_id'); // Opcional: Filtrar por bloque específico
 
-            $aulas = Aulas::where('activo', true)->get();
-            $bloques = BloqueHorario::orderBy('numero_bloque')->get();
+            // Obtener todas las aulas activas (o una específica)
+            $aulasQuery = Aulas::where('activo', true);
+            if ($aula_id) {
+                $aulasQuery->where('id', $aula_id);
+            }
+            $aulas = $aulasQuery->get();
 
+            // Obtener todos los bloques horarios (o uno específico)
+            $bloquesQuery = BloqueHorario::orderBy('numero_bloque');
+            if ($bloque_id) {
+                $bloquesQuery->where('id', $bloque_id);
+            }
+            $bloques = $bloquesQuery->get();
+
+            // Obtener todos los horarios ocupados de una sola vez
+            $horariosQuery = Horario::select('id_aula', 'id_bloque', 'dias_semana');
+
+            if ($dia) {
+                $horariosQuery->whereJsonContains('dias_semana', $dia);
+            }
+
+            $horariosOcupados = $horariosQuery->get();
+
+            // Crear un set de combinaciones aula-bloque ocupadas para búsqueda rápida
+            $ocupados = [];
+            foreach ($horariosOcupados as $horario) {
+                $key = $horario->id_aula . '-' . $horario->id_bloque;
+                $ocupados[$key] = true;
+            }
+
+            // Construir el resultado
             $resultado = [];
 
             foreach ($aulas as $aula) {
                 $bloques_disponibles = [];
 
                 foreach ($bloques as $bloque) {
-                    // Verificar si el aula está ocupada en este bloque
-                    $query = Horario::where('id_aula', $aula->id)
-                        ->where('id_bloque', $bloque->id);
-
-                    if ($dia) {
-                        $query->whereJsonContains('dias_semana', $dia);
-                    }
-
-                    $ocupada = $query->exists();
+                    $key = $aula->id . '-' . $bloque->id;
+                    $ocupada = isset($ocupados[$key]);
 
                     $bloques_disponibles[] = [
                         'bloque' => $bloque->nombre,
-                        'hora_inicio' => $bloque->hora_inicio,
-                        'hora_fin' => $bloque->hora_fin,
+                        'hora_inicio' => date('H:i', strtotime($bloque->hora_inicio)),
+                        'hora_fin' => date('H:i', strtotime($bloque->hora_fin)),
                         'disponible' => !$ocupada
                     ];
                 }
@@ -273,6 +299,7 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
+                'ip_address' => \App\Helpers\IpHelper::getClientIp(),
                 'tabla' => 'aulas',
                 'operacion' => 'exportacion',
                 'descripcion' => "Consultó reporte de aulas disponibles" . ($dia ? " (Día: $dia)" : "")
@@ -299,9 +326,36 @@ class ReporteController extends Controller
     {
         try {
             $dia = $request->query('dia');
+            $aula_id = $request->query('aula_id');
+            $bloque_id = $request->query('bloque_id');
 
-            $aulas = Aulas::where('activo', true)->get();
-            $bloques = BloqueHorario::orderBy('numero_bloque')->get();
+            $aulasQuery = Aulas::where('activo', true);
+            if ($aula_id) {
+                $aulasQuery->where('id', $aula_id);
+            }
+            $aulas = $aulasQuery->get();
+
+            $bloquesQuery = BloqueHorario::orderBy('numero_bloque');
+            if ($bloque_id) {
+                $bloquesQuery->where('id', $bloque_id);
+            }
+            $bloques = $bloquesQuery->get();
+
+            // Obtener todos los horarios ocupados de una sola vez
+            $horariosQuery = Horario::select('id_aula', 'id_bloque', 'dias_semana');
+
+            if ($dia) {
+                $horariosQuery->whereJsonContains('dias_semana', $dia);
+            }
+
+            $horariosOcupados = $horariosQuery->get();
+
+            // Crear un set de combinaciones aula-bloque ocupadas
+            $ocupados = [];
+            foreach ($horariosOcupados as $horario) {
+                $key = $horario->id_aula . '-' . $horario->id_bloque;
+                $ocupados[$key] = true;
+            }
 
             $resultado = [];
 
@@ -309,19 +363,13 @@ class ReporteController extends Controller
                 $bloques_info = [];
 
                 foreach ($bloques as $bloque) {
-                    $query = Horario::where('id_aula', $aula->id)
-                        ->where('id_bloque', $bloque->id);
-
-                    if ($dia) {
-                        $query->whereJsonContains('dias_semana', $dia);
-                    }
-
-                    $ocupada = $query->exists();
+                    $key = $aula->id . '-' . $bloque->id;
+                    $ocupada = isset($ocupados[$key]);
 
                     $bloques_info[] = [
                         'bloque' => $bloque->nombre,
-                        'hora_inicio' => $bloque->hora_inicio,
-                        'hora_fin' => $bloque->hora_fin,
+                        'hora_inicio' => date('H:i', strtotime($bloque->hora_inicio)),
+                        'hora_fin' => date('H:i', strtotime($bloque->hora_fin)),
                         'disponible' => !$ocupada
                     ];
                 }
@@ -344,6 +392,7 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
+                'ip_address' => \App\Helpers\IpHelper::getClientIp(),
                 'tabla' => 'aulas',
                 'operacion' => 'exportacion',
                 'descripcion' => "Exportó reporte de aulas disponibles a PDF"
@@ -367,9 +416,36 @@ class ReporteController extends Controller
     {
         try {
             $dia = $request->query('dia');
+            $aula_id = $request->query('aula_id');
+            $bloque_id = $request->query('bloque_id');
 
-            $aulas = Aulas::where('activo', true)->get();
-            $bloques = BloqueHorario::orderBy('numero_bloque')->get();
+            $aulasQuery = Aulas::where('activo', true);
+            if ($aula_id) {
+                $aulasQuery->where('id', $aula_id);
+            }
+            $aulas = $aulasQuery->get();
+
+            $bloquesQuery = BloqueHorario::orderBy('numero_bloque');
+            if ($bloque_id) {
+                $bloquesQuery->where('id', $bloque_id);
+            }
+            $bloques = $bloquesQuery->get();
+
+            // Obtener todos los horarios ocupados de una sola vez
+            $horariosQuery = Horario::select('id_aula', 'id_bloque', 'dias_semana');
+
+            if ($dia) {
+                $horariosQuery->whereJsonContains('dias_semana', $dia);
+            }
+
+            $horariosOcupados = $horariosQuery->get();
+
+            // Crear un set de combinaciones aula-bloque ocupadas
+            $ocupados = [];
+            foreach ($horariosOcupados as $horario) {
+                $key = $horario->id_aula . '-' . $horario->id_bloque;
+                $ocupados[$key] = true;
+            }
 
             $filename = 'aulas_disponibles_' . time() . '.csv';
             $handle = fopen('php://temp', 'r+');
@@ -377,7 +453,9 @@ class ReporteController extends Controller
             // Encabezados
             $encabezados = ['Aula', 'Capacidad'];
             foreach ($bloques as $bloque) {
-                $encabezados[] = $bloque->nombre . ' (' . $bloque->hora_inicio . '-' . $bloque->hora_fin . ')';
+                $horaInicio = date('H:i', strtotime($bloque->hora_inicio));
+                $horaFin = date('H:i', strtotime($bloque->hora_fin));
+                $encabezados[] = $bloque->nombre . ' (' . $horaInicio . '-' . $horaFin . ')';
             }
             fputcsv($handle, $encabezados);
 
@@ -386,14 +464,8 @@ class ReporteController extends Controller
                 $fila = [$aula->numero_aula, $aula->capacidad];
 
                 foreach ($bloques as $bloque) {
-                    $query = Horario::where('id_aula', $aula->id)
-                        ->where('id_bloque', $bloque->id);
-
-                    if ($dia) {
-                        $query->whereJsonContains('dias_semana', $dia);
-                    }
-
-                    $ocupada = $query->exists();
+                    $key = $aula->id . '-' . $bloque->id;
+                    $ocupada = isset($ocupados[$key]);
                     $fila[] = $ocupada ? 'Ocupada' : 'Libre';
                 }
 
@@ -407,6 +479,7 @@ class ReporteController extends Controller
             // Registrar en bitácora
             Bitacora::create([
                 'id_usuario' => auth()->id(),
+                'ip_address' => \App\Helpers\IpHelper::getClientIp(),
                 'tabla' => 'aulas',
                 'operacion' => 'exportacion',
                 'descripcion' => "Exportó reporte de aulas disponibles a Excel/CSV"

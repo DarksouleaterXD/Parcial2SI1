@@ -97,6 +97,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('reportes/aulas-disponibles', [ReporteController::class, 'aulasDisponibles']);
         Route::get('reportes/aulas-disponibles/pdf', [ReporteController::class, 'aulasDisponiblesPDF']);
         Route::get('reportes/aulas-disponibles/excel', [ReporteController::class, 'aulasDisponiblesExcel']);
+
+        // CU16 - Reportes de Asistencias (solo admin)
+        Route::prefix('reportes/asistencias')->group(function () {
+            Route::get('/', [App\Http\Controllers\ReporteAsistenciaController::class, 'reporteGeneral']);
+            Route::get('/estadisticas-docente', [App\Http\Controllers\ReporteAsistenciaController::class, 'estadisticasPorDocente']);
+            Route::get('/pendientes', [App\Http\Controllers\ReporteAsistenciaController::class, 'asistenciasPendientes']);
+            Route::get('/resumen', [App\Http\Controllers\ReporteAsistenciaController::class, 'resumenGeneral']);
+            Route::get('/pdf', [App\Http\Controllers\ReporteAsistenciaController::class, 'exportarPDF']);
+            Route::get('/excel', [App\Http\Controllers\ReporteAsistenciaController::class, 'exportarExcel']);
+        });
     });
 
     /**
@@ -220,6 +230,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('IsDocente')->group(function () {
         // CU8 - Consultar Horario Semanal (Mi Horario)
         Route::get('mi-horario', [HorarioDocenteController::class, 'miHorario']);
+
+        // Periodos (solo lectura para seleccionar en Mi Horario)
+        Route::get('periodos', [PeriodoController::class, 'index']);
+        Route::get('periodos/{periodo}', [PeriodoController::class, 'show']);
 
         // Solo lectura de horarios
         Route::get('horarios', [HorarioController::class, 'index']);

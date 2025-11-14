@@ -23,9 +23,25 @@ class BloqueHorario extends Model
 
     protected $casts = [
         'activo' => 'boolean',
-        'hora_inicio' => 'datetime:H:i',
-        'hora_fin' => 'datetime:H:i',
     ];
+
+    protected $appends = ['hora_inicio_formatted', 'hora_fin_formatted'];
+
+    /**
+     * Accessor para formatear hora_inicio
+     */
+    public function getHoraInicioFormattedAttribute()
+    {
+        return $this->hora_inicio ? date('H:i', strtotime($this->hora_inicio)) : null;
+    }
+
+    /**
+     * Accessor para formatear hora_fin
+     */
+    public function getHoraFinFormattedAttribute()
+    {
+        return $this->hora_fin ? date('H:i', strtotime($this->hora_fin)) : null;
+    }
 
     /**
      * Relación con Horarios

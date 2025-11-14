@@ -101,12 +101,12 @@
         <table>
             <thead>
                 <tr>
-                    <th>Días</th>
-                    <th>Materia</th>
-                    <th>Horario</th>
-                    <th>Grupo</th>
-                    <th>Aula</th>
-                    <th>Docente</th>
+                    <th style="width: 12%;">Días</th>
+                    <th style="width: 28%;">Materia</th>
+                    <th style="width: 15%;">Horario</th>
+                    <th style="width: 12%;">Grupo</th>
+                    <th style="width: 8%;">Aula</th>
+                    <th style="width: 25%;">Docente</th>
                 </tr>
             </thead>
             <tbody>
@@ -125,7 +125,7 @@
                         <td style="font-family: monospace;">
                             {{ $horario->bloque->hora_inicio ?? '' }} - {{ $horario->bloque->hora_fin ?? '' }}
                         </td>
-                        <td>{{ $horario->grupo->codigo ?? 'N/A' }}</td>
+                        <td style="font-size: 9px; word-wrap: break-word;">{{ $horario->grupo->codigo ?? 'N/A' }}-{{ $horario->grupo->paralelo ?? '' }}</td>
                         <td>{{ $horario->aula->numero_aula ?? 'N/A' }}</td>
                         <td>
                             {{ $horario->docente->persona->nombre ?? '' }}

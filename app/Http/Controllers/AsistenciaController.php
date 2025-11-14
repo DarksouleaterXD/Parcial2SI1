@@ -22,10 +22,17 @@ class AsistenciaController extends Controller
         try {
             $user = Auth::user();
 
-            // Obtener el docente asociado al usuario
-            $docente = Docente::whereHas('persona', function ($query) use ($user) {
-                $query->where('id_usuario', $user->id);
-            })->first();
+            // Obtener el docente asociado al usuario a través de persona
+            $persona = $user->persona;
+
+            if (!$persona) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no tiene persona asociada'
+                ], 404);
+            }
+
+            $docente = Docente::where('id_persona', $persona->id)->first();
 
             if (!$docente) {
                 return response()->json([
@@ -110,10 +117,17 @@ class AsistenciaController extends Controller
 
             $user = Auth::user();
 
-            // Obtener docente
-            $docente = Docente::whereHas('persona', function ($query) use ($user) {
-                $query->where('id_usuario', $user->id);
-            })->first();
+            // Obtener docente a través de persona
+            $persona = $user->persona;
+
+            if (!$persona) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no tiene persona asociada'
+                ], 404);
+            }
+
+            $docente = Docente::where('id_persona', $persona->id)->first();
 
             if (!$docente) {
                 return response()->json([
@@ -369,9 +383,16 @@ class AsistenciaController extends Controller
 
             // Si es docente, solo ve sus propias asistencias
             if ($user->rol === 'docente') {
-                $docente = Docente::whereHas('persona', function ($q) use ($user) {
-                    $q->where('id_usuario', $user->id);
-                })->first();
+                $persona = $user->persona;
+
+                if (!$persona) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Usuario no tiene persona asociada'
+                    ], 404);
+                }
+
+                $docente = Docente::where('id_persona', $persona->id)->first();
 
                 if (!$docente) {
                     return response()->json([

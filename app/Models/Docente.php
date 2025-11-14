@@ -68,5 +68,13 @@ class Docente extends Model
     {
         return $this->hasMany(Horario::class, 'id_docente', 'id');
     }
+
+    /**
+     * Relación con Asistencias
+     */
+    public function asistencias(): HasMany
+    {
+        return $this->hasMany(Asistencia::class, 'docente_id', 'id');
+    }
 }
 
