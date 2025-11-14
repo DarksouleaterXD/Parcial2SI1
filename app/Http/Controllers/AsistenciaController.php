@@ -53,6 +53,9 @@ class AsistenciaController extends Controller
                 ->map(function ($sesion) {
                     $asistencia = $sesion->asistencias->first();
 
+                    // Calcular ventana de marcado
+                    $sesion->calcularVentanaMarcado();
+
                     return [
                         'id' => $sesion->id,
                         'materia' => $sesion->grupo->materia->nombre ?? 'Sin materia',
