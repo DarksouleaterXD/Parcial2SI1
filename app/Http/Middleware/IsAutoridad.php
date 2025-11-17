@@ -17,7 +17,7 @@ class IsAutoridad
         }
 
         $user = auth()->user();
-        
+
         // Verificar si es admin (columna rol)
         if ($user->rol === 'admin') {
             return $next($request);

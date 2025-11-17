@@ -17,7 +17,7 @@ class IsDocente
         }
 
         $user = auth()->user();
-        
+
         // Verificar si es admin (columna rol)
         if ($user->rol === 'admin') {
             return $next($request);
@@ -31,7 +31,7 @@ class IsDocente
         } catch (\Exception $e) {
             // Si falla la verificación RBAC, continuar con columna rol
         }
-        
+
         // Verificar si es docente (columna rol)
         if ($user->rol === 'docente') {
             return $next($request);

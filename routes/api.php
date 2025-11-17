@@ -177,7 +177,7 @@ Route::middleware('auth:sanctum')->group(function () {
      * Recursos de consulta (lectura) accesibles para todos los roles del sistema
      */
     Route::middleware('IsAnyAuthenticated')->group(function () {
-        
+
         // Consultas de solo lectura compartidas
         Route::get('horarios', [HorarioController::class, 'index']);
         Route::get('horarios/{horario}', [HorarioController::class, 'show']);
@@ -196,7 +196,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('carreras-lista', [CarreraController::class, 'lista']);
         Route::get('bloques-horarios', [BloqueHorarioController::class, 'index']);
         Route::get('bloques-horarios/{bloqueHorario}', [BloqueHorarioController::class, 'show']);
-        
+
         // Bitácora (solo lectura)
         Route::get('bitacoras/seed/datos-prueba', [BitacoraController::class, 'seedDatos']);
         Route::get('bitacoras/estadisticas/resumen', [BitacoraController::class, 'estadisticas']);
@@ -205,18 +205,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('bitacoras/exportar/csv', [BitacoraController::class, 'exportarCSV']);
         Route::get('bitacoras', [BitacoraController::class, 'index']);
         Route::get('bitacoras/{bitacora}', [BitacoraController::class, 'show']);
-        
+
         // Gestión académica (solo lectura)
         Route::get('gestion-academica', [GestionAcademicaController::class, 'index']);
         Route::get('gestion-academica/{gestionAcademica}', [GestionAcademicaController::class, 'show']);
-        
+
         // CU9 - Consultar Disponibilidad de Aulas
         Route::get('aulas-disponibilidad', [AulasController::class, 'disponibilidad']);
-        
+
         // Gestión de usuarios (solo lectura)
         Route::get('usuarios', [UserController::class, 'index']);
         Route::get('usuarios/{usuario}', [UserController::class, 'show']);
-        
+
+        // Verificación de asistencias
+        Route::get('asistencias/verificar', [AsistenciaController::class, 'verificarAsistencias']);
+
         // Reportes
         Route::get('reportes/horarios-semanales', [ReporteController::class, 'horariosSemanales']);
         Route::get('reportes/horarios-semanales/pdf', [ReporteController::class, 'horariosSemanalesPDF']);
@@ -247,7 +250,7 @@ Route::middleware('auth:sanctum')->group(function () {
      * - IsAdminOrCoordinador (recursos CRUD completo pero Autoridad puede usar GET)
      * - IsAdminOrCoordinadorOrAutoridad (dashboard)
      * - IsCoordinador (bitácoras, reportes, usuarios, carreras, periodos)
-     * 
+     *
      * Este grupo solo contiene rutas EXCLUSIVAS para Autoridad (si las hay)
      */
     Route::middleware('IsAutoridad')->group(function () {
@@ -257,7 +260,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /**
      * RUTAS DOCENTE (exclusivas)
-     * NOTA: Docente ya tiene acceso de lectura a horarios, periodos, aulas-disponibilidad 
+     * NOTA: Docente ya tiene acceso de lectura a horarios, periodos, aulas-disponibilidad
      * a través de IsAdminOrCoordinadorOrAutoridad. Solo definir rutas exclusivas aquí.
      */
     Route::middleware('IsDocente')->group(function () {

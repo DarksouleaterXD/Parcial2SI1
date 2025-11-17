@@ -60,15 +60,23 @@ class GenerarSesiones extends Command
                         ->exists();
 
                     if (!$existente) {
+                        $hora_inicio = $horario->bloque->hora_inicio;
+                        $inicio = Carbon::parse($hora_inicio);
+                        $ventana_inicio = $inicio->copy()->subMinutes(30)->format('H:i:s');
+                        $ventana_fin = $inicio->copy()->addMinutes(20)->format('H:i:s');
+
                         Sesion::create([
                             'horario_id' => $horario->id,
                             'docente_id' => $horario->id_docente,
                             'aula_id' => $horario->id_aula,
                             'grupo_id' => $horario->id_grupo,
                             'fecha' => $fecha->format('Y-m-d'),
-                            'hora_inicio' => $horario->bloque->hora_inicio,
+                            'hora_inicio' => $hora_inicio,
                             'hora_fin' => $horario->bloque->hora_fin,
+                            'ventana_inicio' => $ventana_inicio,
+                            'ventana_fin' => $ventana_fin,
                             'estado' => 'programada',
+                            'activo' => true,
                         ]);
 
                         $sesionesCreadas++;

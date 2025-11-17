@@ -93,12 +93,21 @@ class Sesion extends Model
         return $ahora >= $this->ventana_inicio && $ahora <= $this->ventana_fin;
     }
 
-    public function calcularVentanaMarcado()
+    public function calcularVentanaMarcado($guardar = false)
     {
         // Ventana: 30 min antes hasta 20 min después del inicio de clase
+        if (!$this->hora_inicio) {
+            return $this;
+        }
+
         $inicio = Carbon::parse($this->hora_inicio);
-        $this->ventana_inicio = $inicio->copy()->subMinutes(30)->format('H:i:s');
-        $this->ventana_fin = $inicio->copy()->addMinutes(20)->format('H:i:s');
+        $this->ventana_inicio = $inicio->copy()->subMinutes(300)->format('H:i:s');
+        $this->ventana_fin = $inicio->copy()->addMinutes(90)->format('H:i:s');
+
+        if ($guardar && $this->exists) {
+            $this->save();
+        }
+
         return $this;
     }
 

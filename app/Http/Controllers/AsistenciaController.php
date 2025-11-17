@@ -157,7 +157,14 @@ class AsistenciaController extends Controller
                 ], 403);
             }
 
-            // Validar ventana de marcado
+            // Calcular y guardar ventana de marcado si no existe
+            if (!$sesion->ventana_inicio || !$sesion->ventana_fin) {
+                $sesion->calcularVentanaMarcado(true);
+            }
+
+            // ⚠️ VALIDACIÓN DE VENTANA DESACTIVADA PARA PRUEBAS ⚠️
+            // Descomentar en producción para activar restricción de horario
+            /*
             if (!$sesion->dentroDeVentana()) {
                 return response()->json([
                     'success' => false,
@@ -167,6 +174,7 @@ class AsistenciaController extends Controller
                     'hora_actual' => Carbon::now()->format('H:i:s'),
                 ], 400);
             }
+            */
 
             // Validar duplicado
             $asistenciaExistente = Asistencia::where('sesion_id', $sesion->id)
@@ -490,6 +498,84 @@ class AsistenciaController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar observación',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verificar asistencias (Admin/Coordinador)
+     * GET /api/asistencias/verificar
+     */
+    public function verificarAsistencias(Request $request)
+    {
+        try {
+            $query = Asistencia::with([
+                'docente.persona',
+                'sesion' => function ($query) {
+                    $query->with(['grupo.materia', 'aula']);
+                }
+            ]);
+
+            // Filtros
+            if ($request->has('fecha_desde')) {
+                $query->whereHas('sesion', function ($q) use ($request) {
+                    $q->where('fecha', '>=', $request->fecha_desde);
+                });
+            }
+
+            if ($request->has('fecha_hasta')) {
+                $query->whereHas('sesion', function ($q) use ($request) {
+                    $q->where('fecha', '<=', $request->fecha_hasta);
+                });
+            }
+
+            if ($request->has('docente') && $request->docente) {
+                $query->whereHas('docente.persona', function ($q) use ($request) {
+                    $q->where('ci', 'like', '%' . $request->docente . '%');
+                });
+            }
+
+            if ($request->has('estado') && $request->estado) {
+                $query->where('estado', $request->estado);
+            }
+
+            if ($request->has('validado') && $request->validado !== '') {
+                $query->where('validado', $request->validado === 'true');
+            }
+
+            $asistencias = $query->orderBy('created_at', 'desc')->get()->map(function ($asistencia) {
+                $persona = $asistencia->docente->persona ?? null;
+                $sesion = $asistencia->sesion;
+
+                return [
+                    'id' => $asistencia->id,
+                    'docente' => $persona ? "{$persona->nombre} {$persona->apellido_paterno}" : 'N/A',
+                    'docente_ci' => $persona->ci ?? 'N/A',
+                    'materia' => $sesion->grupo->materia->nombre ?? 'N/A',
+                    'grupo' => $sesion->grupo->paralelo ?? 'N/A',
+                    'fecha' => $sesion->fecha ?? 'N/A',
+                    'hora_clase' => $sesion ? "{$sesion->hora_inicio} - {$sesion->hora_fin}" : 'N/A',
+                    'hora_marcado' => $asistencia->hora_marcado ?? 'N/A',
+                    'aula' => $sesion->aula->numero_aula ?? 'N/A',
+                    'estado' => $asistencia->estado,
+                    'metodo_registro' => $asistencia->metodo_registro,
+                    'validado' => $asistencia->validado,
+                    'observacion' => $asistencia->observacion,
+                    'ip_marcado' => $asistencia->ip_marcado,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $asistencias,
+                'total' => $asistencias->count()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener asistencias',
                 'error' => $e->getMessage()
             ], 500);
         }
