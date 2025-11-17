@@ -102,12 +102,7 @@ class Sesion extends Model
 
         $inicio = Carbon::parse($this->hora_inicio);
         $this->ventana_inicio = $inicio->copy()->subMinutes(300)->format('H:i:s');
-        $this->ventana_fin = $inicio->copy()->addMinutes(90)->format('H:i:s');
-
-        if ($guardar && $this->exists) {
-            $this->save();
-        }
-
+        $this->ventana_fin = $inicio->copy()->addMinutes(200)->format('H:i:s');
         return $this;
     }
 
