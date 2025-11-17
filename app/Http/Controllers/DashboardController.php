@@ -137,19 +137,30 @@ class DashboardController extends Controller
     {
         $query = Horario::query();
 
+        // Filtrar por período a través de la relación con grupos
         if ($periodo_id) {
-            $query->where('id_periodo', $periodo_id);
+            $query->whereIn('id_grupo', function ($q) use ($periodo_id) {
+                $q->select('id')->from('grupos')
+                  ->where('id_periodo', $periodo_id);
+            });
         }
 
         // Si hay carrera, filtrar por grupos de esa carrera
         if ($carrera_id) {
-            $query->whereIn('id_grupo', function ($q) use ($carrera_id) {
-                $q->select('id')->from('grupos')->where('id_carrera', $carrera_id);
+            $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
+                $subQuery = $q->select('id')->from('grupos')
+                    ->where('carrera_id', $carrera_id);
+                
+                if ($periodo_id) {
+                    $subQuery->where('id_periodo', $periodo_id);
+                }
+                
+                return $subQuery;
             });
         }
 
         $totalHorarios = $query->count();
-        $aulasOcupadas = $query->distinct('id_aula')->count();
+        $aulasOcupadas = $query->distinct('id_aula')->count('id_aula');
 
         $totalAulas = Aulas::where('activo', true)->count();
 
@@ -165,13 +176,24 @@ class DashboardController extends Controller
     {
         $query = CargaHoraria::query();
 
+        // Filtrar por período a través de grupos
         if ($periodo_id) {
-            $query->where('id_periodo', $periodo_id);
+            $query->whereIn('id_grupo', function ($q) use ($periodo_id) {
+                $q->select('id')->from('grupos')
+                  ->where('id_periodo', $periodo_id);
+            });
         }
 
         if ($carrera_id) {
-            $query->whereIn('id_grupo', function ($q) use ($carrera_id) {
-                $q->select('id')->from('grupos')->where('id_carrera', $carrera_id);
+            $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
+                $subQuery = $q->select('id')->from('grupos')
+                    ->where('carrera_id', $carrera_id);
+                
+                if ($periodo_id) {
+                    $subQuery->where('id_periodo', $periodo_id);
+                }
+                
+                return $subQuery;
             });
         }
 
@@ -189,20 +211,41 @@ class DashboardController extends Controller
     {
         $query = Asistencia::query();
 
+        // Filtrar por período a través de sesiones > horarios > grupos
         if ($periodo_id) {
-            $query->whereIn('id_grupo', function ($q) use ($periodo_id) {
-                $q->select('id')->from('grupos')->whereIn('id_periodo', [$periodo_id]);
+            $query->whereIn('sesion_id', function ($q) use ($periodo_id) {
+                $q->select('id')->from('sesiones')
+                  ->whereIn('horario_id', function ($sq) use ($periodo_id) {
+                      $sq->select('id')->from('horarios')
+                         ->whereIn('id_grupo', function ($ssq) use ($periodo_id) {
+                             $ssq->select('id')->from('grupos')
+                                ->where('id_periodo', $periodo_id);
+                         });
+                  });
             });
         }
 
         if ($carrera_id) {
-            $query->whereIn('id_grupo', function ($q) use ($carrera_id) {
-                $q->select('id')->from('grupos')->where('id_carrera', $carrera_id);
+            $query->whereIn('sesion_id', function ($q) use ($carrera_id, $periodo_id) {
+                $q->select('id')->from('sesiones')
+                  ->whereIn('horario_id', function ($sq) use ($carrera_id, $periodo_id) {
+                      $sq->select('id')->from('horarios')
+                         ->whereIn('id_grupo', function ($ssq) use ($carrera_id, $periodo_id) {
+                             $subQuery = $ssq->select('id')->from('grupos')
+                                ->where('carrera_id', $carrera_id);
+                             
+                             if ($periodo_id) {
+                                 $subQuery->where('id_periodo', $periodo_id);
+                             }
+                             
+                             return $subQuery;
+                         });
+                  });
             });
         }
 
         $total = $query->count();
-        $asistentes = $query->where('presente', true)->count();
+        $asistentes = $query->where('estado', 'presente')->count();
 
         return [
             'total_registros' => $total,
@@ -217,7 +260,7 @@ class DashboardController extends Controller
         $resultado = [];
 
         foreach ($tipos as $tipo) {
-            $query = Aulas::where('tipo', $tipo)->where('activo', true);
+            $query = Aulas::where('tipo', $tipo);
             $resultado[] = [
                 'tipo' => $tipo,
                 'cantidad' => $query->count(),
@@ -237,15 +280,12 @@ class DashboardController extends Controller
         }
 
         if ($carrera_id) {
-            $query->where('id_carrera', $carrera_id);
+            $query->where('carrera_id', $carrera_id);
         }
 
         return [
             'grupos_activos' => $query->count(),
-            'estudiantes_total' => DB::table('grupo_estudiante')
-                ->whereIn('id_grupo', $query->select('id'))
-                ->distinct('id_estudiante')
-                ->count(),
+            'estudiantes_total' => 0, // TODO: implementar cuando exista la tabla grupo_estudiante
         ];
     }
 
@@ -253,13 +293,24 @@ class DashboardController extends Controller
     {
         $query = CargaHoraria::query();
 
+        // Filtrar por período a través de grupos
         if ($periodo_id) {
-            $query->where('id_periodo', $periodo_id);
+            $query->whereIn('id_grupo', function ($q) use ($periodo_id) {
+                $q->select('id')->from('grupos')
+                  ->where('id_periodo', $periodo_id);
+            });
         }
 
         if ($carrera_id) {
-            $query->whereIn('id_grupo', function ($q) use ($carrera_id) {
-                $q->select('id')->from('grupos')->where('id_carrera', $carrera_id);
+            $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
+                $subQuery = $q->select('id')->from('grupos')
+                    ->where('carrera_id', $carrera_id);
+                
+                if ($periodo_id) {
+                    $subQuery->where('id_periodo', $periodo_id);
+                }
+                
+                return $subQuery;
             });
         }
 
@@ -278,16 +329,26 @@ class DashboardController extends Controller
 
     private function ocupacionPorDia($periodo_id = null, $carrera_id = null)
     {
-        $query = Horario::select('dia_semana', DB::raw('COUNT(*) as total'))
-            ->groupBy('dia_semana');
+        $query = Horario::select('dias_semana', DB::raw('COUNT(*) as total'))
+            ->groupBy('dias_semana');
 
         if ($periodo_id) {
-            $query->where('id_periodo', $periodo_id);
+            $query->whereIn('id_grupo', function ($q) use ($periodo_id) {
+                $q->select('id')->from('grupos')
+                  ->where('id_periodo', $periodo_id);
+            });
         }
 
         if ($carrera_id) {
-            $query->whereIn('id_grupo', function ($q) use ($carrera_id) {
-                $q->select('id')->from('grupos')->where('id_carrera', $carrera_id);
+            $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
+                $subQuery = $q->select('id')->from('grupos')
+                    ->where('carrera_id', $carrera_id);
+                
+                if ($periodo_id) {
+                    $subQuery->where('id_periodo', $periodo_id);
+                }
+                
+                return $subQuery;
             });
         }
 
@@ -296,7 +357,7 @@ class DashboardController extends Controller
 
         $resultado = [];
         for ($i = 1; $i <= 5; $i++) {
-            $dato = $datos->where('dia_semana', $i)->first();
+            $dato = $datos->where('dias_semana', $i)->first();
             $resultado[] = [
                 'dia' => $dias[$i],
                 'cantidad' => $dato->total ?? 0,
@@ -313,12 +374,22 @@ class DashboardController extends Controller
             ->with('bloque:id,nombre');
 
         if ($periodo_id) {
-            $query->where('id_periodo', $periodo_id);
+            $query->whereIn('id_grupo', function ($q) use ($periodo_id) {
+                $q->select('id')->from('grupos')
+                  ->where('id_periodo', $periodo_id);
+            });
         }
 
         if ($carrera_id) {
-            $query->whereIn('id_grupo', function ($q) use ($carrera_id) {
-                $q->select('id')->from('grupos')->where('id_carrera', $carrera_id);
+            $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
+                $subQuery = $q->select('id')->from('grupos')
+                    ->where('carrera_id', $carrera_id);
+                
+                if ($periodo_id) {
+                    $subQuery->where('id_periodo', $periodo_id);
+                }
+                
+                return $subQuery;
             });
         }
 
@@ -332,20 +403,29 @@ class DashboardController extends Controller
 
     private function asistenciaPorGrupo($periodo_id = null, $carrera_id = null)
     {
-        $query = Asistencia::select('id_grupo', DB::raw('COUNT(*) as total'), DB::raw('SUM(CASE WHEN presente = true THEN 1 ELSE 0 END) as asistentes'))
-            ->groupBy('id_grupo')
-            ->with('grupo:id,nombre');
+        $query = DB::table('asistencias')
+            ->join('sesiones', 'asistencias.sesion_id', '=', 'sesiones.id')
+            ->join('grupos', 'sesiones.grupo_id', '=', 'grupos.id')
+            ->select(
+                'grupos.id',
+                DB::raw("CONCAT(grupos.nombre, ' ', grupos.paralelo) as grupo_nombre"),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN asistencias.estado = 'presente' THEN 1 ELSE 0 END) as asistentes")
+            )
+            ->groupBy('grupos.id', 'grupos.nombre', 'grupos.paralelo');
+
+        if ($periodo_id) {
+            $query->where('grupos.id_periodo', $periodo_id);
+        }
 
         if ($carrera_id) {
-            $query->whereIn('id_grupo', function ($q) use ($carrera_id) {
-                $q->select('id')->from('grupos')->where('id_carrera', $carrera_id);
-            });
+            $query->where('grupos.carrera_id', $carrera_id);
         }
 
         return $query->get()->map(function ($item) {
             $tasa = $item->total > 0 ? round(($item->asistentes / $item->total) * 100, 2) : 0;
             return [
-                'grupo' => $item->grupo->nombre ?? 'Desconocido',
+                'grupo' => $item->grupo_nombre,
                 'tasa_asistencia' => $tasa,
             ];
         })->values();
@@ -353,19 +433,22 @@ class DashboardController extends Controller
 
     private function asistenciaPorSemana($periodo_id = null, $carrera_id = null)
     {
-        $query = Asistencia::select(DB::raw('WEEK(fecha) as semana'), DB::raw('COUNT(*) as total'), DB::raw('SUM(CASE WHEN presente = true THEN 1 ELSE 0 END) as asistentes'))
-            ->groupBy(DB::raw('WEEK(fecha)'));
+        $query = DB::table('asistencias')
+            ->join('sesiones', 'asistencias.sesion_id', '=', 'sesiones.id')
+            ->join('grupos', 'sesiones.grupo_id', '=', 'grupos.id')
+            ->select(
+                DB::raw('EXTRACT(week FROM sesiones.fecha) as semana'),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN asistencias.estado = 'presente' THEN 1 ELSE 0 END) as asistentes")
+            )
+            ->groupBy(DB::raw('EXTRACT(week FROM sesiones.fecha)'));
 
         if ($periodo_id) {
-            $query->whereIn('id_grupo', function ($q) use ($periodo_id) {
-                $q->select('id')->from('grupos')->where('id_periodo', $periodo_id);
-            });
+            $query->where('grupos.id_periodo', $periodo_id);
         }
 
         if ($carrera_id) {
-            $query->whereIn('id_grupo', function ($q) use ($carrera_id) {
-                $q->select('id')->from('grupos')->where('id_carrera', $carrera_id);
-            });
+            $query->where('grupos.carrera_id', $carrera_id);
         }
 
         return $query->orderBy('semana')->get()->map(function ($item) {
@@ -382,15 +465,26 @@ class DashboardController extends Controller
         $query = CargaHoraria::select('id_docente', DB::raw('SUM(horas_semana) as total_horas'))
             ->groupBy('id_docente')
             ->with('docente:id,nombre')
+            ->orderBy('total_horas', 'desc')
             ->limit(10);
 
         if ($periodo_id) {
-            $query->where('id_periodo', $periodo_id);
+            $query->whereIn('id_grupo', function ($q) use ($periodo_id) {
+                $q->select('id')->from('grupos')
+                  ->where('id_periodo', $periodo_id);
+            });
         }
 
         if ($carrera_id) {
-            $query->whereIn('id_grupo', function ($q) use ($carrera_id) {
-                $q->select('id')->from('grupos')->where('id_carrera', $carrera_id);
+            $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
+                $subQuery = $q->select('id')->from('grupos')
+                    ->where('carrera_id', $carrera_id);
+                
+                if ($periodo_id) {
+                    $subQuery->where('id_periodo', $periodo_id);
+                }
+                
+                return $subQuery;
             });
         }
 
@@ -405,13 +499,13 @@ class DashboardController extends Controller
     private function cargaPorCarrera($periodo_id = null)
     {
         $query = DB::table('carga_horaria')
-            ->select('grupos.id_carrera', 'carreras.nombre', DB::raw('SUM(carga_horaria.horas_semana) as total_horas'))
+            ->select('grupos.carrera_id', 'carreras.nombre', DB::raw('SUM(carga_horaria.horas_semana) as total_horas'))
             ->join('grupos', 'carga_horaria.id_grupo', '=', 'grupos.id')
-            ->join('carreras', 'grupos.id_carrera', '=', 'carreras.id')
-            ->groupBy('grupos.id_carrera', 'carreras.nombre');
+            ->join('carreras', 'grupos.carrera_id', '=', 'carreras.id')
+            ->groupBy('grupos.carrera_id', 'carreras.nombre');
 
         if ($periodo_id) {
-            $query->where('carga_horaria.id_periodo', $periodo_id);
+            $query->where('grupos.id_periodo', $periodo_id);
         }
 
         return $query->get()->map(function ($item) {
@@ -422,3 +516,5 @@ class DashboardController extends Controller
         })->values();
     }
 }
+
+

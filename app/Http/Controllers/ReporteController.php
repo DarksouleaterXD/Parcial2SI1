@@ -19,7 +19,7 @@ class ReporteController extends Controller
     {
         try {
             $periodo_id = $request->query('periodo_id');
-            $carrera_id = $request->query('carrera_id');
+            $materia_id = $request->query('materia_id');
             $docente_id = $request->query('docente_id');
 
             if (!$periodo_id) {
@@ -40,10 +40,10 @@ class ReporteController extends Controller
                 $q->where('id_periodo', $periodo_id);
             });
 
-            // Filtrar por carrera si se proporciona
-            if ($carrera_id) {
-                $query->whereHas('grupo.materia', function($q) use ($carrera_id) {
-                    $q->where('id_carrera', $carrera_id);
+            // Filtrar por materia si se proporciona
+            if ($materia_id) {
+                $query->whereHas('grupo', function($q) use ($materia_id) {
+                    $q->where('id_materia', $materia_id);
                 });
             }
 
@@ -89,7 +89,7 @@ class ReporteController extends Controller
     {
         try {
             $periodo_id = $request->query('periodo_id');
-            $carrera_id = $request->query('carrera_id');
+            $materia_id = $request->query('materia_id');
             $docente_id = $request->query('docente_id');
 
             $query = Horario::with([
@@ -103,9 +103,9 @@ class ReporteController extends Controller
                 $q->where('id_periodo', $periodo_id);
             });
 
-            if ($carrera_id) {
-                $query->whereHas('grupo.materia', function($q) use ($carrera_id) {
-                    $q->where('id_carrera', $carrera_id);
+            if ($materia_id) {
+                $query->whereHas('grupo', function($q) use ($materia_id) {
+                    $q->where('id_materia', $materia_id);
                 });
             }
 
@@ -158,7 +158,7 @@ class ReporteController extends Controller
     {
         try {
             $periodo_id = $request->query('periodo_id');
-            $carrera_id = $request->query('carrera_id');
+            $materia_id = $request->query('materia_id');
             $docente_id = $request->query('docente_id');
 
             $query = Horario::with([
@@ -172,9 +172,9 @@ class ReporteController extends Controller
                 $q->where('id_periodo', $periodo_id);
             });
 
-            if ($carrera_id) {
-                $query->whereHas('grupo.materia', function($q) use ($carrera_id) {
-                    $q->where('id_carrera', $carrera_id);
+            if ($materia_id) {
+                $query->whereHas('grupo', function($q) use ($materia_id) {
+                    $q->where('id_materia', $materia_id);
                 });
             }
 
