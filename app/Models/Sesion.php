@@ -97,8 +97,8 @@ class Sesion extends Model
     {
         // Ventana: 30 min antes hasta 20 min después del inicio de clase
         $inicio = Carbon::parse($this->hora_inicio);
-        $this->ventana_inicio = $inicio->copy()->subMinutes(30)->format('H:i:s');
-        $this->ventana_fin = $inicio->copy()->addMinutes(20)->format('H:i:s');
+        $this->ventana_inicio = $inicio->copy()->subMinutes(300)->format('H:i:s');
+        $this->ventana_fin = $inicio->copy()->addMinutes(200)->format('H:i:s');
         return $this;
     }
 
