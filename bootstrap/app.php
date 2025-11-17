@@ -16,8 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'IsAdmin' => \App\Http\Middleware\IsAdmin::class,
             'IsCoordinador' => \App\Http\Middleware\IsCoordinador::class,
             'IsAdminOrCoordinador' => \App\Http\Middleware\IsAdminOrCoordinador::class,
+            'IsAdminOrCoordinadorOrAutoridad' => \App\Http\Middleware\IsAdminOrCoordinadorOrAutoridad::class,
             'IsAutoridad' => \App\Http\Middleware\IsAutoridad::class,
             'IsDocente' => \App\Http\Middleware\IsDocente::class,
+            'IsAnyAuthenticated' => \App\Http\Middleware\IsAnyAuthenticated::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

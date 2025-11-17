@@ -37,19 +37,19 @@ $controller = new App\Http\Controllers\DashboardController();
 
 try {
     echo "--- PROBANDO ENDPOINT /dashboard/kpis ---\n";
-    
+
     $request = new Illuminate\Http\Request();
     $request->merge([
         'periodo_id' => $periodo->id,
         'carrera_id' => null
     ]);
-    
+
     $response = $controller->kpis($request);
     $kpis = json_decode($response->getContent(), true);
-    
+
     echo "Response status: " . $response->getStatusCode() . "\n";
     echo "Response content: " . $response->getContent() . "\n\n";
-    
+
     if ($kpis['success']) {
         echo "✓ KPIs obtenidos exitosamente:\n";
         echo "  - Ocupación aulas: {$kpis['data']['ocupacion_aulas']['tasa_ocupacion']}%\n";
@@ -62,7 +62,7 @@ try {
             echo "   Error details: {$kpis['error']}\n";
         }
     }
-    
+
 } catch (Exception $e) {
     echo "❌ ERROR: " . $e->getMessage() . "\n";
     echo "   Archivo: " . $e->getFile() . "\n";
@@ -74,52 +74,52 @@ echo "\n";
 
 try {
     echo "--- PROBANDO ENDPOINT /dashboard/graficos ---\n";
-    
+
     $request = new Illuminate\Http\Request();
     $request->merge([
         'periodo_id' => $periodo->id,
         'carrera_id' => null,
         'tipo' => 'todos'
     ]);
-    
+
     $response = $controller->graficos($request);
     $graficos = json_decode($response->getContent(), true);
-    
+
     echo "Response status: " . $response->getStatusCode() . "\n";
     if ($response->getStatusCode() !== 200) {
         echo "Response content: " . $response->getContent() . "\n\n";
     }
-    
+
     if ($graficos['success']) {
         echo "✓ Gráficos obtenidos exitosamente:\n";
-        
+
         if (isset($graficos['data']['ocupacion_por_dia'])) {
             echo "  - Ocupación por día: " . count($graficos['data']['ocupacion_por_dia']) . " días\n";
         }
-        
+
         if (isset($graficos['data']['ocupacion_por_bloque'])) {
             echo "  - Ocupación por bloque: " . count($graficos['data']['ocupacion_por_bloque']) . " bloques\n";
         }
-        
+
         if (isset($graficos['data']['asistencia_por_grupo'])) {
             echo "  - Asistencia por grupo: " . count($graficos['data']['asistencia_por_grupo']) . " grupos\n";
         }
-        
+
         if (isset($graficos['data']['asistencia_por_semana'])) {
             echo "  - Asistencia por semana: " . count($graficos['data']['asistencia_por_semana']) . " semanas\n";
         }
-        
+
         if (isset($graficos['data']['carga_por_docente'])) {
             echo "  - Carga por docente: " . count($graficos['data']['carga_por_docente']) . " docentes\n";
         }
-        
+
         if (isset($graficos['data']['carga_por_carrera'])) {
             echo "  - Carga por carrera: " . count($graficos['data']['carga_por_carrera']) . " carreras\n";
         }
     } else {
         echo "❌ Error en gráficos: " . ($graficos['message'] ?? 'Sin mensaje') . "\n";
     }
-    
+
 } catch (Exception $e) {
     echo "❌ ERROR: " . $e->getMessage() . "\n";
     echo "   Archivo: " . $e->getFile() . "\n";

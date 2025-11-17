@@ -18,19 +18,37 @@ class IsCoordinador
 
         $user = auth()->user();
 
-        // Admin puede hacer todo
+        // Verificar si es admin (columna rol)
         if ($user->rol === 'admin') {
             return $next($request);
         }
 
-        // Solo coordinador
-        if ($user->rol !== 'coordinador') {
-            return response()->json([
-                'success' => false,
-                'message' => 'No autorizado. Se requiere rol coordinador.'
-            ], 403);
+        // Verificar si tiene rol RBAC de administrador
+        try {
+            if ($user->roles()->whereIn('nombre', ['Super Administrador', 'Administrador'])->exists()) {
+                return $next($request);
+            }
+        } catch (\Exception $e) {
+            // Si falla la verificación RBAC, continuar
         }
 
-        return $next($request);
+        // Verificar si es coordinador (columna rol)
+        if ($user->rol === 'coordinador') {
+            return $next($request);
+        }
+
+        // Verificar si tiene rol RBAC de coordinador
+        try {
+            if ($user->roles()->where('nombre', 'Coordinador')->exists()) {
+                return $next($request);
+            }
+        } catch (\Exception $e) {
+            // Si falla la verificación RBAC, continuar
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No autorizado. Se requiere rol coordinador.'
+        ], 403);
     }
 }

@@ -16,13 +16,16 @@ class IsAdmin
             ], 401);
         }
 
-        if (auth()->user()->rol !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Acceso denegado. Se requieren permisos de administrador'
-            ], 403);
+        $user = auth()->user();
+
+        // Verificar si es admin (columna rol O rol RBAC)
+        if ($user->rol === 'admin' || $user->tieneRol('Super Administrador') || $user->tieneRol('Administrador')) {
+            return $next($request);
         }
 
-        return $next($request);
+        return response()->json([
+            'success' => false,
+            'message' => 'Acceso denegado. Se requieren permisos de administrador'
+        ], 403);
     }
 }

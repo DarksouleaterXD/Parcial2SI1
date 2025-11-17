@@ -18,19 +18,37 @@ class IsDocente
 
         $user = auth()->user();
         
-        // Admin puede hacer todo
+        // Verificar si es admin (columna rol)
         if ($user->rol === 'admin') {
             return $next($request);
         }
 
-        // Solo docente
-        if ($user->rol !== 'docente') {
-            return response()->json([
-                'success' => false,
-                'message' => 'No autorizado. Se requiere rol docente.'
-            ], 403);
+        // Verificar si tiene rol RBAC de administrador
+        try {
+            if ($user->roles()->whereIn('nombre', ['Super Administrador', 'Administrador'])->exists()) {
+                return $next($request);
+            }
+        } catch (\Exception $e) {
+            // Si falla la verificación RBAC, continuar con columna rol
+        }
+        
+        // Verificar si es docente (columna rol)
+        if ($user->rol === 'docente') {
+            return $next($request);
         }
 
-        return $next($request);
+        // Verificar si tiene rol RBAC de docente
+        try {
+            if ($user->roles()->where('nombre', 'Docente')->exists()) {
+                return $next($request);
+            }
+        } catch (\Exception $e) {
+            // Si falla la verificación RBAC, continuar
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No autorizado. Se requiere rol docente.'
+        ], 403);
     }
 }

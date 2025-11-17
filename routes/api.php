@@ -162,30 +162,23 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     /**
-     * RUTAS COORDINADOR (adicionales - Bitácora y consulta de períodos)
-     * Las rutas principales de coordinador están en el middleware compartido IsAdminOrCoordinador
+     * RUTAS COMPARTIDAS: ADMIN, COORDINADOR Y AUTORIDAD
+     * Dashboard solo para roles administrativos (sin docente)
      */
-    Route::middleware('IsCoordinador')->group(function () {
-        // CU20 - Bitácora (Coordinador puede ver bitácora)
-        Route::get('bitacoras/seed/datos-prueba', [BitacoraController::class, 'seedDatos']);
-        Route::get('bitacoras/estadisticas/resumen', [BitacoraController::class, 'estadisticas']);
-        Route::get('bitacoras/tabla/{tabla}', [BitacoraController::class, 'porTabla']);
-        Route::get('bitacoras/usuario/{id_usuario}', [BitacoraController::class, 'porUsuario']);
-        Route::get('bitacoras/exportar/csv', [BitacoraController::class, 'exportarCSV']);
-        Route::get('bitacoras', [BitacoraController::class, 'index']);
-        Route::get('bitacoras/{bitacora}', [BitacoraController::class, 'show']);
-
-        // CU6 - Coordinador solo puede consultar periodos (no crear/editar)
-        Route::get('periodos', [PeriodoController::class, 'index']);
-        Route::get('periodos/{periodo}', [PeriodoController::class, 'show']);
+    Route::middleware('IsAdminOrCoordinadorOrAutoridad')->group(function () {
+        // CU10 - Tablero Administrativo (Dashboard)
+        Route::get('dashboard/kpis', [DashboardController::class, 'kpis']);
+        Route::get('dashboard/graficos', [DashboardController::class, 'graficos']);
+        Route::get('dashboard/catalogos', [DashboardController::class, 'catalogos']);
     });
 
     /**
-     * RUTAS AUTORIDAD
-     * Puede: Consultar (lectura) horarios, aulas, disponibilidad, ver reportes, bitácora
+     * RUTAS COMPARTIDAS: ADMIN, COORDINADOR, AUTORIDAD Y DOCENTE
+     * Recursos de consulta (lectura) accesibles para todos los roles del sistema
      */
-    Route::middleware('IsAutoridad')->group(function () {
-        // Solo lectura para autoridad - Módulos académicos
+    Route::middleware('IsAnyAuthenticated')->group(function () {
+        
+        // Consultas de solo lectura compartidas
         Route::get('horarios', [HorarioController::class, 'index']);
         Route::get('horarios/{horario}', [HorarioController::class, 'show']);
         Route::get('aulas', [AulasController::class, 'index']);
@@ -203,8 +196,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('carreras-lista', [CarreraController::class, 'lista']);
         Route::get('bloques-horarios', [BloqueHorarioController::class, 'index']);
         Route::get('bloques-horarios/{bloqueHorario}', [BloqueHorarioController::class, 'show']);
-
-        // Bitácora
+        
+        // Bitácora (solo lectura)
         Route::get('bitacoras/seed/datos-prueba', [BitacoraController::class, 'seedDatos']);
         Route::get('bitacoras/estadisticas/resumen', [BitacoraController::class, 'estadisticas']);
         Route::get('bitacoras/tabla/{tabla}', [BitacoraController::class, 'porTabla']);
@@ -212,41 +205,70 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('bitacoras/exportar/csv', [BitacoraController::class, 'exportarCSV']);
         Route::get('bitacoras', [BitacoraController::class, 'index']);
         Route::get('bitacoras/{bitacora}', [BitacoraController::class, 'show']);
-        Route::apiResource('gestion-academica', GestionAcademicaController::class, ['only' => ['index', 'show']]);
-
+        
+        // Gestión académica (solo lectura)
+        Route::get('gestion-academica', [GestionAcademicaController::class, 'index']);
+        Route::get('gestion-academica/{gestionAcademica}', [GestionAcademicaController::class, 'show']);
+        
         // CU9 - Consultar Disponibilidad de Aulas
         Route::get('aulas-disponibilidad', [AulasController::class, 'disponibilidad']);
-
-        // CU10 - Tablero Administrativo (Dashboard)
-        Route::get('dashboard/kpis', [DashboardController::class, 'kpis']);
-        Route::get('dashboard/graficos', [DashboardController::class, 'graficos']);
-        Route::get('dashboard/catalogos', [DashboardController::class, 'catalogos']);
+        
+        // Gestión de usuarios (solo lectura)
+        Route::get('usuarios', [UserController::class, 'index']);
+        Route::get('usuarios/{usuario}', [UserController::class, 'show']);
+        
+        // Reportes
+        Route::get('reportes/horarios-semanales', [ReporteController::class, 'horariosSemanales']);
+        Route::get('reportes/horarios-semanales/pdf', [ReporteController::class, 'horariosSemanalesPDF']);
+        Route::get('reportes/horarios-semanales/excel', [ReporteController::class, 'horariosSemanalesExcel']);
+        Route::get('reportes/aulas-disponibles', [ReporteController::class, 'aulasDisponibles']);
     });
 
     /**
-     * RUTAS DOCENTE
-     * Puede: Ver su horario, registrar asistencia, consultar disponibilidad de aulas, ver sus reportes
+     * RUTAS COORDINADOR (exclusivas)
+     * NOTA: Las rutas comunes ya están en IsAdminOrCoordinador e IsAdminOrCoordinadorOrAutoridad
+     */
+    Route::middleware('IsCoordinador')->group(function () {
+        // CU13 - Roles y Permisos (solo coordinador puede ver RBAC)
+        Route::get('roles', [RolPermisoController::class, 'index']);
+        Route::get('roles/{rol}', [RolPermisoController::class, 'show']);
+        Route::get('permisos', [RolPermisoController::class, 'listarPermisos']);
+        Route::get('modulos', [RolPermisoController::class, 'listarModulos']);
+        Route::get('acciones', [RolPermisoController::class, 'listarAcciones']);
+    });
+
+    /**
+     * RUTAS AUTORIDAD
+     * Puede: Consultar (lectura) horarios, aulas, disponibilidad, ver reportes, bitácora
+     */
+    /**
+     * RUTAS AUTORIDAD
+     * NOTA: Autoridad ya tiene acceso a la mayoría de recursos través de:
+     * - IsAdminOrCoordinador (recursos CRUD completo pero Autoridad puede usar GET)
+     * - IsAdminOrCoordinadorOrAutoridad (dashboard)
+     * - IsCoordinador (bitácoras, reportes, usuarios, carreras, periodos)
+     * 
+     * Este grupo solo contiene rutas EXCLUSIVAS para Autoridad (si las hay)
+     */
+    Route::middleware('IsAutoridad')->group(function () {
+        // Por ahora no hay rutas exclusivas de Autoridad
+        // Autoridad accede a todo mediante los middlewares compartidos
+    });
+
+    /**
+     * RUTAS DOCENTE (exclusivas)
+     * NOTA: Docente ya tiene acceso de lectura a horarios, periodos, aulas-disponibilidad 
+     * a través de IsAdminOrCoordinadorOrAutoridad. Solo definir rutas exclusivas aquí.
      */
     Route::middleware('IsDocente')->group(function () {
-        // CU8 - Consultar Horario Semanal (Mi Horario)
+        // CU8 - Consultar Horario Semanal (Mi Horario) - EXCLUSIVO DOCENTE
         Route::get('mi-horario', [HorarioDocenteController::class, 'miHorario']);
 
-        // Periodos (solo lectura para seleccionar en Mi Horario)
-        Route::get('periodos', [PeriodoController::class, 'index']);
-        Route::get('periodos/{periodo}', [PeriodoController::class, 'show']);
-
-        // Solo lectura de horarios
-        Route::get('horarios', [HorarioController::class, 'index']);
-        Route::get('horarios/{horario}', [HorarioController::class, 'show']);
-
-        // CU16 - Registrar Asistencia (Docente)
+        // CU16 - Registrar Asistencia (Docente) - EXCLUSIVO DOCENTE
         Route::get('mis-clases-hoy', [AsistenciaController::class, 'misClasesHoy']);
         Route::post('asistencias', [AsistenciaController::class, 'store']);
         Route::get('asistencias', [AsistenciaController::class, 'index']); // Solo ve sus propias asistencias
         Route::patch('asistencias/{id}/observacion', [AsistenciaController::class, 'ajustarObservacion']);
-
-        // CU9 - Consultar Disponibilidad de Aulas
-        Route::get('aulas-disponibilidad', [AulasController::class, 'disponibilidad']);
     });
 
     // Rutas compartidas disponibles para todos autenticados

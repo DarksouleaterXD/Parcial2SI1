@@ -39,30 +39,30 @@ foreach ($periodos as $periodo) {
 // Si hay coordinador, simular las consultas que hace el dashboard
 if ($coordinadores->count() > 0) {
     $periodo_vigente = Periodo::where('vigente', true)->first();
-    
+
     if ($periodo_vigente) {
         echo "📈 Simulando consultas del dashboard con período vigente (ID: " . $periodo_vigente->id . "):" . PHP_EOL . PHP_EOL;
-        
+
         // Ocupación de aulas
         $total_aulas = \App\Models\Aulas::where('activo', true)->count();
         echo "  Total aulas activas: " . $total_aulas . PHP_EOL;
-        
+
         // Horarios del período
         $horarios = \App\Models\Horario::where('periodo_id', $periodo_vigente->id)
             ->where('activo', true)
             ->count();
         echo "  Horarios del período: " . $horarios . PHP_EOL;
-        
+
         // Grupos activos
         $grupos = \App\Models\Grupo::where('periodo_id', $periodo_vigente->id)
             ->where('activo', true)
             ->count();
         echo "  Grupos activos: " . $grupos . PHP_EOL;
-        
+
         // Asistencias
         $asistencias = \App\Models\Asistencia::count();
         echo "  Total asistencias registradas: " . $asistencias . PHP_EOL;
-        
+
     } else {
         echo "⚠️  No hay período vigente configurado" . PHP_EOL;
     }

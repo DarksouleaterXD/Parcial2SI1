@@ -18,19 +18,37 @@ class IsAutoridad
 
         $user = auth()->user();
         
-        // Admin puede hacer todo
+        // Verificar si es admin (columna rol)
         if ($user->rol === 'admin') {
             return $next($request);
         }
 
-        // Solo autoridad
-        if ($user->rol !== 'autoridad') {
-            return response()->json([
-                'success' => false,
-                'message' => 'No autorizado. Se requiere rol autoridad.'
-            ], 403);
+        // Verificar si tiene rol RBAC de administrador
+        try {
+            if ($user->roles()->whereIn('nombre', ['Super Administrador', 'Administrador'])->exists()) {
+                return $next($request);
+            }
+        } catch (\Exception $e) {
+            // Si falla la verificación RBAC, continuar
         }
 
-        return $next($request);
+        // Verificar si es autoridad (columna rol)
+        if ($user->rol === 'autoridad') {
+            return $next($request);
+        }
+
+        // Verificar si tiene rol RBAC de autoridad
+        try {
+            if ($user->roles()->where('nombre', 'Autoridad')->exists()) {
+                return $next($request);
+            }
+        } catch (\Exception $e) {
+            // Si falla la verificación RBAC, continuar
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No autorizado. Se requiere rol autoridad.'
+        ], 403);
     }
 }

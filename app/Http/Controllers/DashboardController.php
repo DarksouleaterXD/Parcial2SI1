@@ -150,11 +150,11 @@ class DashboardController extends Controller
             $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
                 $subQuery = $q->select('id')->from('grupos')
                     ->where('carrera_id', $carrera_id);
-                
+
                 if ($periodo_id) {
                     $subQuery->where('id_periodo', $periodo_id);
                 }
-                
+
                 return $subQuery;
             });
         }
@@ -188,11 +188,11 @@ class DashboardController extends Controller
             $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
                 $subQuery = $q->select('id')->from('grupos')
                     ->where('carrera_id', $carrera_id);
-                
+
                 if ($periodo_id) {
                     $subQuery->where('id_periodo', $periodo_id);
                 }
-                
+
                 return $subQuery;
             });
         }
@@ -233,11 +233,11 @@ class DashboardController extends Controller
                          ->whereIn('id_grupo', function ($ssq) use ($carrera_id, $periodo_id) {
                              $subQuery = $ssq->select('id')->from('grupos')
                                 ->where('carrera_id', $carrera_id);
-                             
+
                              if ($periodo_id) {
                                  $subQuery->where('id_periodo', $periodo_id);
                              }
-                             
+
                              return $subQuery;
                          });
                   });
@@ -305,11 +305,11 @@ class DashboardController extends Controller
             $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
                 $subQuery = $q->select('id')->from('grupos')
                     ->where('carrera_id', $carrera_id);
-                
+
                 if ($periodo_id) {
                     $subQuery->where('id_periodo', $periodo_id);
                 }
-                
+
                 return $subQuery;
             });
         }
@@ -343,11 +343,11 @@ class DashboardController extends Controller
             $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
                 $subQuery = $q->select('id')->from('grupos')
                     ->where('carrera_id', $carrera_id);
-                
+
                 if ($periodo_id) {
                     $subQuery->where('id_periodo', $periodo_id);
                 }
-                
+
                 return $subQuery;
             });
         }
@@ -384,11 +384,11 @@ class DashboardController extends Controller
             $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
                 $subQuery = $q->select('id')->from('grupos')
                     ->where('carrera_id', $carrera_id);
-                
+
                 if ($periodo_id) {
                     $subQuery->where('id_periodo', $periodo_id);
                 }
-                
+
                 return $subQuery;
             });
         }
@@ -479,11 +479,11 @@ class DashboardController extends Controller
             $query->whereIn('id_grupo', function ($q) use ($carrera_id, $periodo_id) {
                 $subQuery = $q->select('id')->from('grupos')
                     ->where('carrera_id', $carrera_id);
-                
+
                 if ($periodo_id) {
                     $subQuery->where('id_periodo', $periodo_id);
                 }
-                
+
                 return $subQuery;
             });
         }

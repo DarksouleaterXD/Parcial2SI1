@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 
-class IsAdminOrCoordinador
+class IsAdminOrCoordinadorOrAutoridad
 {
     public function handle(Request $request, Closure $next)
     {
@@ -46,9 +46,23 @@ class IsAdminOrCoordinador
             // Si falla la verificación RBAC, continuar
         }
 
+        // Verificar si es autoridad (columna rol)
+        if ($user->rol === 'autoridad') {
+            return $next($request);
+        }
+
+        // Verificar si tiene rol RBAC de autoridad
+        try {
+            if ($user->roles()->where('nombre', 'Autoridad')->exists()) {
+                return $next($request);
+            }
+        } catch (\Exception $e) {
+            // Si falla la verificación RBAC, continuar
+        }
+
         return response()->json([
             'success' => false,
-            'message' => 'No autorizado. Se requiere rol de administrador o coordinador.'
+            'message' => 'No autorizado. Se requiere rol administrativo (Admin, Coordinador o Autoridad).'
         ], 403);
     }
 }
